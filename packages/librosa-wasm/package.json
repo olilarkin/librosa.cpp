@@ -1,0 +1,40 @@
+{
+  "name": "@olilarkin/librosa-wasm",
+  "version": "0.1.0",
+  "description": "librosa.cpp compiled to WebAssembly with WASM SIMD and a TypeScript API.",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "dist/wasm",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:wasm": "emcmake cmake -S ../.. -B ../../build-wasm -G Ninja -DLIBROSA_BUILD_TESTS=OFF -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF -DLIBROSA_BUILD_CLI=OFF -DLIBROSA_BUILD_WASM=ON -DLIBROSA_FFT_BACKEND=pffft && cmake --build ../../build-wasm --target librosa_wasm",
+    "build:ts": "tsc -p tsconfig.json",
+    "build": "npm run build:wasm && npm run build:ts",
+    "test": "npm run build:ts && node --test dist/test/*.test.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olilarkin/librosa.cpp.git",
+    "directory": "packages/librosa-wasm"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  }
+}

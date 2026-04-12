@@ -1,0 +1,7 @@
+# Dependencies used only to run tests/crossval/generate_references.py,
+# which produces JSON reference outputs from the Python librosa that the
+# C++ cross-validation tests diff against.
+#
+# Pin to the upstream version librosa.cpp is ported from.
+librosa==0.11.0
+numpy

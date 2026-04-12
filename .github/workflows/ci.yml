@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: "Build & test (Ubuntu, FFTW backend)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config libsndfile1-dev libfftw3-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=ON
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF
+          -DLIBROSA_BUILD_CLI=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j2
+
+  macos-accelerate:
+    name: "Build & test (macOS, Accelerate backend)"
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: brew install cmake ninja pkg-config libsndfile
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=ON
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF
+          -DLIBROSA_BUILD_CLI=ON
+          -DLIBROSA_FFT_BACKEND=accelerate
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j2
+
+  emscripten-pffft:
+    name: "Build & test npm WASM package (Emscripten, pffft + SIMD)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.61
+
+      - name: Install npm dependencies
+        working-directory: packages/librosa-wasm
+        run: npm ci
+
+      - name: Build WASM package
+        working-directory: packages/librosa-wasm
+        run: npm run build
+
+      - name: Run TypeScript parity tests
+        working-directory: packages/librosa-wasm
+        run: npm test
+
+  xcframework:
+    name: "Build CLibrosa XCFramework"
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: brew install cmake
+
+      - name: Build XCFramework
+        run: ./scripts/build-xcframework.sh
+
+      - name: Upload XCFramework artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLibrosa.xcframework
+          path: .build/xcframework/CLibrosa.xcframework
+          if-no-files-found: error
+
+  pocketfft:
+    name: "Build & test (Ubuntu, pocketfft backend)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config libsndfile1-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=ON
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF
+          -DLIBROSA_BUILD_CLI=ON
+          -DLIBROSA_FFT_BACKEND=pocketfft
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j2
+
+  crossval:
+    name: "Cross-validation vs Python librosa"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config libsndfile1-dev libfftw3-dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install Python librosa (reference oracle)
+        run: pip install -r requirements-dev.txt
+
+      - name: Generate reference data
+        run: python tests/crossval/generate_references.py
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=ON
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=ON
+          -DLIBROSA_BUILD_CLI=OFF
+
+      - name: Build
+        run: cmake --build build --target crossval_tests
+
+      - name: Run cross-validation tests
+        run: ./build/crossval_tests

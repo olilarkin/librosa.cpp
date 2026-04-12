@@ -1,0 +1,144 @@
+name: Publish release assets
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Existing GitHub release tag to attach assets to"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-cli:
+    name: "Build CLI (${{ matrix.name }})"
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Linux x64, pocketfft"
+            os: ubuntu-latest
+            install: |
+              sudo apt-get update -yy
+              sudo apt-get install -yy cmake ninja-build pkg-config libsndfile1-dev
+            fft_backend: pocketfft
+          - name: "macOS, Accelerate"
+            os: macos-latest
+            install: |
+              brew install cmake ninja pkg-config libsndfile
+            fft_backend: accelerate
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          ref: ${{ github.event.release.tag_name || inputs.tag_name }}
+
+      - name: Install dependencies
+        run: ${{ matrix.install }}
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=OFF
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF
+          -DLIBROSA_BUILD_CLI=ON
+          -DLIBROSA_FFT_BACKEND=${{ matrix.fft_backend }}
+
+      - name: Build CLI
+        run: cmake --build build --target librosa_cli
+
+      - name: Smoke test CLI
+        run: ./build/librosa --help
+
+      - name: Package CLI
+        id: package
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag_name }}
+        run: |
+          set -euo pipefail
+
+          platform="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m)"
+          version="${TAG_NAME#v}"
+          package="librosa-cli-${version}-${platform}-${arch}"
+
+          mkdir -p "${package}"
+          cp build/librosa "${package}/"
+          cp LICENSE NOTICE.md README.md "${package}/"
+          cat > "${package}/DEPENDENCIES.txt" <<'EOF'
+          The CLI binary dynamically links against the platform C++ runtime and libsndfile.
+
+          Install libsndfile with your system package manager:
+          - Ubuntu/Debian: sudo apt-get install libsndfile1
+          - macOS/Homebrew: brew install libsndfile
+          EOF
+
+          tar -czf "${package}.tar.gz" "${package}"
+          shasum -a 256 "${package}.tar.gz" > "${package}.tar.gz.sha256"
+
+          echo "archive=${package}.tar.gz" >> "${GITHUB_OUTPUT}"
+          echo "checksum=${package}.tar.gz.sha256" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag_name }}
+        run: >
+          gh release upload "${TAG_NAME}"
+          "${{ steps.package.outputs.archive }}"
+          "${{ steps.package.outputs.checksum }}"
+          --clobber
+
+  build-xcframework:
+    name: "Build XCFramework"
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          ref: ${{ github.event.release.tag_name || inputs.tag_name }}
+
+      - name: Install dependencies
+        run: brew install cmake
+
+      - name: Build XCFramework
+        run: ./scripts/build-xcframework.sh
+
+      - name: Package XCFramework
+        id: package
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag_name }}
+        run: |
+          set -euo pipefail
+
+          version="${TAG_NAME#v}"
+          archive="CLibrosa-${version}.xcframework.zip"
+
+          ditto -c -k --sequesterRsrc --keepParent \
+            .build/xcframework/CLibrosa.xcframework \
+            "${archive}"
+          shasum -a 256 "${archive}" > "${archive}.sha256"
+
+          echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
+          echo "checksum=${archive}.sha256" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag_name }}
+        run: >
+          gh release upload "${TAG_NAME}"
+          "${{ steps.package.outputs.archive }}"
+          "${{ steps.package.outputs.checksum }}"
+          --clobber

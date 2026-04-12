@@ -1,0 +1,9 @@
+[submodule "modules/eigen"]
+	path = modules/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "modules/pffft"]
+	path = modules/pffft
+	url = https://github.com/marton78/pffft.git
+[submodule "modules/pocketfft"]
+	path = modules/pocketfft
+	url = https://github.com/mreineck/pocketfft.git

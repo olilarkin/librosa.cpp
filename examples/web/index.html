@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>librosa.wasm gallery showcase</title>
+    <link rel="stylesheet" href="./src/styles.css?v=stable-source-panel">
+    <script type="importmap">
+      {
+        "imports": {
+          "@olilarkin/librosa-wasm": "../../packages/librosa-wasm/dist/src/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <button class="iconButton" id="sidebarToggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Collapse sidebar">
+          <span aria-hidden="true"></span>
+        </button>
+        <div class="brand">
+          <p class="eyebrow">@olilarkin/librosa-wasm</p>
+          <h1>librosa gallery showcase</h1>
+        </div>
+        <img class="brandLogo" src="../../librosa_logo_text.png" alt="librosa">
+      </header>
+
+      <main class="shell">
+        <nav class="sidebar" id="sidebar" aria-label="Gallery controls">
+          <section class="sidebarSection">
+            <div id="exampleList" class="exampleList"></div>
+          </section>
+
+          <section class="sidebarSection">
+            <div id="demoSourceList" class="demoSourceList"></div>
+          </section>
+        </nav>
+
+        <section class="workspace">
+          <section class="sourcePanel" aria-label="Current source">
+            <div class="sourceMeta">
+              <span class="label">Source</span>
+              <strong id="sourceName">Tutorial mix</strong>
+              <span id="sourceStats">--</span>
+              <button class="secondary sourcePlayButton" id="sourcePlayButton" type="button">Play</button>
+            </div>
+            <canvas id="sourceWaveform" class="waveform" aria-label="Source waveform"></canvas>
+          </section>
+
+          <section class="exampleHeader">
+            <div>
+              <p class="eyebrow" id="exampleCategory">Example</p>
+              <h2 id="exampleTitle">--</h2>
+            </div>
+            <div class="viewToggle" role="group" aria-label="Result view">
+              <button class="viewToggleButton active" type="button" data-view-mode="generated">Spectrograms</button>
+              <button class="viewToggleButton" type="button" data-view-mode="code">JavaScript</button>
+            </div>
+          </section>
+
+          <div id="generatedView" class="generatedView">
+            <div id="metrics" class="metrics" aria-label="Analysis metrics"></div>
+            <section id="plots" class="plots" aria-label="Analysis plots"></section>
+          </div>
+          <section class="codePanel" aria-label="JavaScript code">
+            <div class="codeHeader">
+              <span>JavaScript code</span>
+              <span id="runTime">--</span>
+            </div>
+            <pre id="codeSnippet"></pre>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/app.js?v=librosa-data-audio"></script>
+  </body>
+</html>

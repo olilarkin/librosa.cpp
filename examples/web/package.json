@@ -1,0 +1,14 @@
+{
+  "name": "librosa-wasm-gallery-showcase",
+  "private": true,
+  "type": "module",
+  "description": "Browser showcase for @olilarkin/librosa-wasm tutorial examples.",
+  "scripts": {
+    "start": "python3 -m http.server 5175 --directory ../..",
+    "check": "node --check src/app.js && node --check src/analysis-worker.js && node --check scripts/prepare-audio.mjs",
+    "prepare:audio": "node scripts/prepare-audio.mjs"
+  },
+  "dependencies": {
+    "@olilarkin/librosa-wasm": "file:../../packages/librosa-wasm"
+  }
+}

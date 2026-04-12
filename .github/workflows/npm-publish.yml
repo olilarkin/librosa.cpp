@@ -1,0 +1,54 @@
+name: Publish npm package
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: "Publish @olilarkin/librosa-wasm to GitHub Packages"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.61
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@olilarkin"
+
+      - name: Install npm dependencies
+        working-directory: packages/librosa-wasm
+        run: npm ci
+
+      - name: Build package
+        working-directory: packages/librosa-wasm
+        run: npm run build
+
+      - name: Test package
+        working-directory: packages/librosa-wasm
+        run: npm test
+
+      - name: Publish to GitHub Packages
+        working-directory: packages/librosa-wasm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --ignore-scripts

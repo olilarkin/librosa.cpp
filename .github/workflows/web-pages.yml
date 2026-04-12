@@ -1,0 +1,79 @@
+name: Web Demo Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build web demo
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.61
+
+      - name: Install WASM package dependencies
+        working-directory: packages/librosa-wasm
+        run: npm ci
+
+      - name: Build WASM package
+        working-directory: packages/librosa-wasm
+        run: npm run build
+
+      - name: Check web demo scripts
+        working-directory: examples/web
+        run: npm run check
+
+      - name: Prepare demo audio
+        working-directory: examples/web
+        run: npm run prepare:audio
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p _site/packages/librosa-wasm
+          cp -R examples/web/. _site/
+          cp -R packages/librosa-wasm/dist _site/packages/librosa-wasm/dist
+          cp librosa_logo_text.png _site/librosa_logo_text.png
+          sed -i 's#"../../packages/librosa-wasm/dist/src/index.js"#"./packages/librosa-wasm/dist/src/index.js"#' _site/index.html
+          sed -i 's#src="../../librosa_logo_text.png"#src="./librosa_logo_text.png"#' _site/index.html
+          sed -i 's#"../../../packages/librosa-wasm/dist/src/index.js"#"../packages/librosa-wasm/dist/src/index.js"#' _site/src/analysis-worker.js
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
