@@ -77,14 +77,118 @@ int librosa_load(const char *path,
                  double duration,
                  LibrosaAudioData *out_audio);
 
+int librosa_frames_to_samples(int64_t frames,
+                              int hop_length,
+                              int has_n_fft,
+                              int n_fft,
+                              int64_t *out_samples);
+int librosa_frames_to_samples_vector(const double *frames,
+                                     int64_t count,
+                                     int hop_length,
+                                     int has_n_fft,
+                                     int n_fft,
+                                     LibrosaVector *out);
+int librosa_samples_to_frames(int64_t samples,
+                              int hop_length,
+                              int has_n_fft,
+                              int n_fft,
+                              int64_t *out_frames);
+int librosa_samples_to_frames_vector(const double *samples,
+                                     int64_t count,
+                                     int hop_length,
+                                     int has_n_fft,
+                                     int n_fft,
+                                     LibrosaVector *out);
+int librosa_frames_to_time(int64_t frames,
+                           double sample_rate,
+                           int hop_length,
+                           int has_n_fft,
+                           int n_fft,
+                           double *out_time);
+int librosa_frames_to_time_vector(const double *frames,
+                                  int64_t count,
+                                  double sample_rate,
+                                  int hop_length,
+                                  int has_n_fft,
+                                  int n_fft,
+                                  LibrosaVector *out);
+int librosa_time_to_frames(double time,
+                           double sample_rate,
+                           int hop_length,
+                           int has_n_fft,
+                           int n_fft,
+                           int64_t *out_frames);
+int librosa_time_to_frames_vector(const double *times,
+                                  int64_t count,
+                                  double sample_rate,
+                                  int hop_length,
+                                  int has_n_fft,
+                                  int n_fft,
+                                  LibrosaVector *out);
+int librosa_time_to_samples(double time, double sample_rate, int64_t *out_samples);
+int librosa_time_to_samples_vector(const double *times,
+                                   int64_t count,
+                                   double sample_rate,
+                                   LibrosaVector *out);
+int librosa_samples_to_time(int64_t samples, double sample_rate, double *out_time);
+int librosa_samples_to_time_vector(const double *samples,
+                                   int64_t count,
+                                   double sample_rate,
+                                   LibrosaVector *out);
+
 int librosa_midi_to_hz(double midi, double *out_hz);
+int librosa_midi_to_hz_vector(const double *midi, int64_t count, LibrosaVector *out);
 int librosa_hz_to_midi(double hz, double *out_midi);
+int librosa_hz_to_midi_vector(const double *hz, int64_t count, LibrosaVector *out);
 int librosa_hz_to_mel(double hz, int htk, double *out_mel);
+int librosa_hz_to_mel_vector(const double *hz, int64_t count, int htk, LibrosaVector *out);
 int librosa_mel_to_hz(double mel, int htk, double *out_hz);
+int librosa_mel_to_hz_vector(const double *mel, int64_t count, int htk, LibrosaVector *out);
 int librosa_note_to_midi(const char *note, int round_midi, double *out_midi);
 int librosa_note_to_hz(const char *note, double *out_hz);
+int librosa_hz_to_octs(double hz, double tuning, int bins_per_octave, double *out_octs);
+int librosa_hz_to_octs_vector(const double *hz,
+                              int64_t count,
+                              double tuning,
+                              int bins_per_octave,
+                              LibrosaVector *out);
+int librosa_octs_to_hz(double octs, double tuning, int bins_per_octave, double *out_hz);
+int librosa_octs_to_hz_vector(const double *octs,
+                              int64_t count,
+                              double tuning,
+                              int bins_per_octave,
+                              LibrosaVector *out);
+int librosa_a4_to_tuning(double a4, int bins_per_octave, double *out_tuning);
+int librosa_a4_to_tuning_vector(const double *a4,
+                                int64_t count,
+                                int bins_per_octave,
+                                LibrosaVector *out);
+int librosa_tuning_to_a4(double tuning, int bins_per_octave, double *out_a4);
+int librosa_tuning_to_a4_vector(const double *tuning,
+                                int64_t count,
+                                int bins_per_octave,
+                                LibrosaVector *out);
 int librosa_fft_frequencies(double sample_rate, int n_fft, LibrosaVector *out);
+int librosa_cqt_frequencies(int n_bins,
+                            double fmin,
+                            int bins_per_octave,
+                            double tuning,
+                            LibrosaVector *out);
 int librosa_mel_frequencies(int n_mels, double fmin, double fmax, int htk, LibrosaVector *out);
+int librosa_tempo_frequencies(int n_bins,
+                              int hop_length,
+                              double sample_rate,
+                              LibrosaVector *out);
+int librosa_fourier_tempo_frequencies(double sample_rate,
+                                      int win_length,
+                                      int hop_length,
+                                      LibrosaVector *out);
+int librosa_frequency_weighting(const double *frequencies,
+                                int64_t count,
+                                const char *kind,
+                                int has_min_db,
+                                double min_db,
+                                LibrosaVector *out);
 
 int librosa_tone(double frequency,
                  double sample_rate,

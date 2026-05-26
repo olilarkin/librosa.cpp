@@ -134,12 +134,166 @@ public enum Librosa {
         )
     }
 
+    public static func framesToSamples(_ frames: Int,
+                                       hopLength: Int = 512,
+                                       nFFT: Int? = nil) throws -> Int {
+        var output: Int64 = 0
+        try check(librosa_frames_to_samples(Int64(frames),
+                                            CInt(hopLength),
+                                            flag(nFFT != nil),
+                                            CInt(nFFT ?? 0),
+                                            &output))
+        return Int(output)
+    }
+
+    public static func framesToSamples(_ frames: [Double],
+                                       hopLength: Int = 512,
+                                       nFFT: Int? = nil) throws -> [Double] {
+        try vector(from: frames) { buffer, out in
+            librosa_frames_to_samples_vector(buffer.baseAddress,
+                                             Int64(buffer.count),
+                                             CInt(hopLength),
+                                             flag(nFFT != nil),
+                                             CInt(nFFT ?? 0),
+                                             out)
+        }
+    }
+
+    public static func samplesToFrames(_ samples: Int,
+                                       hopLength: Int = 512,
+                                       nFFT: Int? = nil) throws -> Int {
+        var output: Int64 = 0
+        try check(librosa_samples_to_frames(Int64(samples),
+                                            CInt(hopLength),
+                                            flag(nFFT != nil),
+                                            CInt(nFFT ?? 0),
+                                            &output))
+        return Int(output)
+    }
+
+    public static func samplesToFrames(_ samples: [Double],
+                                       hopLength: Int = 512,
+                                       nFFT: Int? = nil) throws -> [Double] {
+        try vector(from: samples) { buffer, out in
+            librosa_samples_to_frames_vector(buffer.baseAddress,
+                                             Int64(buffer.count),
+                                             CInt(hopLength),
+                                             flag(nFFT != nil),
+                                             CInt(nFFT ?? 0),
+                                             out)
+        }
+    }
+
+    public static func framesToTime(_ frames: Int,
+                                    sampleRate: Double = 22_050,
+                                    hopLength: Int = 512,
+                                    nFFT: Int? = nil) throws -> Double {
+        var output = 0.0
+        try check(librosa_frames_to_time(Int64(frames),
+                                         sampleRate,
+                                         CInt(hopLength),
+                                         flag(nFFT != nil),
+                                         CInt(nFFT ?? 0),
+                                         &output))
+        return output
+    }
+
+    public static func framesToTime(_ frames: [Double],
+                                    sampleRate: Double = 22_050,
+                                    hopLength: Int = 512,
+                                    nFFT: Int? = nil) throws -> [Double] {
+        try vector(from: frames) { buffer, out in
+            librosa_frames_to_time_vector(buffer.baseAddress,
+                                          Int64(buffer.count),
+                                          sampleRate,
+                                          CInt(hopLength),
+                                          flag(nFFT != nil),
+                                          CInt(nFFT ?? 0),
+                                          out)
+        }
+    }
+
+    public static func timeToFrames(_ time: Double,
+                                    sampleRate: Double = 22_050,
+                                    hopLength: Int = 512,
+                                    nFFT: Int? = nil) throws -> Int {
+        var output: Int64 = 0
+        try check(librosa_time_to_frames(time,
+                                         sampleRate,
+                                         CInt(hopLength),
+                                         flag(nFFT != nil),
+                                         CInt(nFFT ?? 0),
+                                         &output))
+        return Int(output)
+    }
+
+    public static func timeToFrames(_ times: [Double],
+                                    sampleRate: Double = 22_050,
+                                    hopLength: Int = 512,
+                                    nFFT: Int? = nil) throws -> [Double] {
+        try vector(from: times) { buffer, out in
+            librosa_time_to_frames_vector(buffer.baseAddress,
+                                          Int64(buffer.count),
+                                          sampleRate,
+                                          CInt(hopLength),
+                                          flag(nFFT != nil),
+                                          CInt(nFFT ?? 0),
+                                          out)
+        }
+    }
+
+    public static func timeToSamples(_ time: Double,
+                                     sampleRate: Double = 22_050) throws -> Int {
+        var output: Int64 = 0
+        try check(librosa_time_to_samples(time, sampleRate, &output))
+        return Int(output)
+    }
+
+    public static func timeToSamples(_ times: [Double],
+                                     sampleRate: Double = 22_050) throws -> [Double] {
+        try vector(from: times) { buffer, out in
+            librosa_time_to_samples_vector(buffer.baseAddress,
+                                           Int64(buffer.count),
+                                           sampleRate,
+                                           out)
+        }
+    }
+
+    public static func samplesToTime(_ samples: Int,
+                                     sampleRate: Double = 22_050) throws -> Double {
+        var output = 0.0
+        try check(librosa_samples_to_time(Int64(samples), sampleRate, &output))
+        return output
+    }
+
+    public static func samplesToTime(_ samples: [Double],
+                                     sampleRate: Double = 22_050) throws -> [Double] {
+        try vector(from: samples) { buffer, out in
+            librosa_samples_to_time_vector(buffer.baseAddress,
+                                           Int64(buffer.count),
+                                           sampleRate,
+                                           out)
+        }
+    }
+
     public static func midiToHz(_ midi: Double) throws -> Double {
         try scalar(midi, librosa_midi_to_hz)
     }
 
+    public static func midiToHz(_ midi: [Double]) throws -> [Double] {
+        try vector(from: midi) { buffer, out in
+            librosa_midi_to_hz_vector(buffer.baseAddress, Int64(buffer.count), out)
+        }
+    }
+
     public static func hzToMidi(_ hz: Double) throws -> Double {
         try scalar(hz, librosa_hz_to_midi)
+    }
+
+    public static func hzToMidi(_ hz: [Double]) throws -> [Double] {
+        try vector(from: hz) { buffer, out in
+            librosa_hz_to_midi_vector(buffer.baseAddress, Int64(buffer.count), out)
+        }
     }
 
     public static func hzToMel(_ hz: Double, htk: Bool = false) throws -> Double {
@@ -148,10 +302,22 @@ public enum Librosa {
         return output
     }
 
+    public static func hzToMel(_ hz: [Double], htk: Bool = false) throws -> [Double] {
+        try vector(from: hz) { buffer, out in
+            librosa_hz_to_mel_vector(buffer.baseAddress, Int64(buffer.count), flag(htk), out)
+        }
+    }
+
     public static func melToHz(_ mel: Double, htk: Bool = false) throws -> Double {
         var output = 0.0
         try check(librosa_mel_to_hz(mel, flag(htk), &output))
         return output
+    }
+
+    public static func melToHz(_ mel: [Double], htk: Bool = false) throws -> [Double] {
+        try vector(from: mel) { buffer, out in
+            librosa_mel_to_hz_vector(buffer.baseAddress, Int64(buffer.count), flag(htk), out)
+        }
     }
 
     public static func noteToMidi(_ note: String, round: Bool = true) throws -> Double {
@@ -170,10 +336,83 @@ public enum Librosa {
         return output
     }
 
+    public static func hzToOcts(_ hz: Double,
+                                tuning: Double = 0,
+                                binsPerOctave: Int = 12) throws -> Double {
+        var output = 0.0
+        try check(librosa_hz_to_octs(hz, tuning, CInt(binsPerOctave), &output))
+        return output
+    }
+
+    public static func hzToOcts(_ hz: [Double],
+                                tuning: Double = 0,
+                                binsPerOctave: Int = 12) throws -> [Double] {
+        try vector(from: hz) { buffer, out in
+            librosa_hz_to_octs_vector(buffer.baseAddress,
+                                      Int64(buffer.count),
+                                      tuning,
+                                      CInt(binsPerOctave),
+                                      out)
+        }
+    }
+
+    public static func octsToHz(_ octs: Double,
+                                tuning: Double = 0,
+                                binsPerOctave: Int = 12) throws -> Double {
+        var output = 0.0
+        try check(librosa_octs_to_hz(octs, tuning, CInt(binsPerOctave), &output))
+        return output
+    }
+
+    public static func octsToHz(_ octs: [Double],
+                                tuning: Double = 0,
+                                binsPerOctave: Int = 12) throws -> [Double] {
+        try vector(from: octs) { buffer, out in
+            librosa_octs_to_hz_vector(buffer.baseAddress,
+                                      Int64(buffer.count),
+                                      tuning,
+                                      CInt(binsPerOctave),
+                                      out)
+        }
+    }
+
+    public static func a4ToTuning(_ a4: Double, binsPerOctave: Int = 12) throws -> Double {
+        var output = 0.0
+        try check(librosa_a4_to_tuning(a4, CInt(binsPerOctave), &output))
+        return output
+    }
+
+    public static func a4ToTuning(_ a4: [Double], binsPerOctave: Int = 12) throws -> [Double] {
+        try vector(from: a4) { buffer, out in
+            librosa_a4_to_tuning_vector(buffer.baseAddress, Int64(buffer.count), CInt(binsPerOctave), out)
+        }
+    }
+
+    public static func tuningToA4(_ tuning: Double, binsPerOctave: Int = 12) throws -> Double {
+        var output = 0.0
+        try check(librosa_tuning_to_a4(tuning, CInt(binsPerOctave), &output))
+        return output
+    }
+
+    public static func tuningToA4(_ tuning: [Double], binsPerOctave: Int = 12) throws -> [Double] {
+        try vector(from: tuning) { buffer, out in
+            librosa_tuning_to_a4_vector(buffer.baseAddress, Int64(buffer.count), CInt(binsPerOctave), out)
+        }
+    }
+
     public static func fftFrequencies(sampleRate: Double = 22_050,
                                       nFFT: Int = 2048) throws -> [Double] {
         try vector { out in
             librosa_fft_frequencies(sampleRate, CInt(nFFT), out)
+        }
+    }
+
+    public static func cqtFrequencies(nBins: Int,
+                                      fmin: Double,
+                                      binsPerOctave: Int = 12,
+                                      tuning: Double = 0) throws -> [Double] {
+        try vector { out in
+            librosa_cqt_frequencies(CInt(nBins), fmin, CInt(binsPerOctave), tuning, out)
         }
     }
 
@@ -183,6 +422,45 @@ public enum Librosa {
                                       htk: Bool = false) throws -> [Double] {
         try vector { out in
             librosa_mel_frequencies(CInt(nMels), fmin, fmax, flag(htk), out)
+        }
+    }
+
+    public static func tempoFrequencies(nBins: Int,
+                                        hopLength: Int = 512,
+                                        sampleRate: Double = 22_050) throws -> [Double] {
+        try vector { out in
+            librosa_tempo_frequencies(CInt(nBins), CInt(hopLength), sampleRate, out)
+        }
+    }
+
+    public static func fourierTempoFrequencies(sampleRate: Double = 22_050,
+                                               winLength: Int = 384,
+                                               hopLength: Int = 512) throws -> [Double] {
+        try vector { out in
+            librosa_fourier_tempo_frequencies(sampleRate, CInt(winLength), CInt(hopLength), out)
+        }
+    }
+
+    public static func weighting(_ frequency: Double,
+                                 kind: String = "A",
+                                 minDB: Double? = -80) throws -> Double {
+        try weighting([frequency], kind: kind, minDB: minDB)[0]
+    }
+
+    public static func weighting(_ frequencies: [Double],
+                                 kind: String = "A",
+                                 minDB: Double? = -80) throws -> [Double] {
+        try frequencies.withUnsafeBufferPointer { buffer in
+            try kind.withCString { cKind in
+                try vector { out in
+                    librosa_frequency_weighting(buffer.baseAddress,
+                                                Int64(buffer.count),
+                                                cKind,
+                                                flag(minDB != nil),
+                                                minDB ?? 0,
+                                                out)
+                }
+            }
         }
     }
 
@@ -1017,6 +1295,16 @@ private extension Librosa {
         try check(body(&raw))
         defer { librosa_vector_free(&raw) }
         return doubles(raw.data, count: Int(raw.count))
+    }
+
+    static func vector(from values: [Double],
+                       _ body: (UnsafeBufferPointer<Double>, UnsafeMutablePointer<CLibrosa.LibrosaVector>?) -> CInt) throws -> [Double] {
+        try values.withUnsafeBufferPointer { buffer in
+            var raw = CLibrosa.LibrosaVector()
+            try check(body(buffer, &raw))
+            defer { librosa_vector_free(&raw) }
+            return doubles(raw.data, count: Int(raw.count))
+        }
     }
 
     static func matrix(from y: [Double],

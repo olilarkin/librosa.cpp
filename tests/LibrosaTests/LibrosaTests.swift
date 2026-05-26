@@ -4,9 +4,39 @@ import XCTest
 
 final class LibrosaTests: XCTestCase {
     func testBasicConversionsAndTone() throws {
+        XCTAssertEqual(try Librosa.framesToSamples(2, hopLength: 512), 1_024)
+        XCTAssertEqual(try Librosa.framesToSamples(2, hopLength: 512, nFFT: 1_024), 1_536)
+        XCTAssertEqual(try Librosa.samplesToFrames(1_024, hopLength: 512), 2)
+        XCTAssertEqual(try Librosa.framesToTime(2, sampleRate: 1_000, hopLength: 100), 0.2, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.timeToFrames(0.2, sampleRate: 1_000, hopLength: 100), 2)
+        XCTAssertEqual(try Librosa.timeToSamples(0.5, sampleRate: 8_000), 4_000)
+        XCTAssertEqual(try Librosa.samplesToTime(4_000, sampleRate: 8_000), 0.5, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.framesToSamples([0, 1, 2], hopLength: 64), [0, 64, 128])
+
         XCTAssertEqual(try Librosa.midiToHz(69), 440, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.midiToHz([69, 81]), [440, 880])
         XCTAssertEqual(try Librosa.hzToMidi(440), 69, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.hzToMidi([440, 880]), [69, 81])
         XCTAssertEqual(try Librosa.noteToHz("A4"), 440, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.hzToMel(1_000), 15, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.melToHz(15), 1_000, accuracy: 1e-9)
+        assertRelativeNear(try Librosa.melToHz(try Librosa.hzToMel([1_000, 2_000])),
+                           [1_000, 2_000],
+                           tolerance: 1e-9)
+        XCTAssertEqual(try Librosa.octsToHz(try Librosa.hzToOcts(440)), 440, accuracy: 1e-9)
+        XCTAssertEqual(try Librosa.tuningToA4(try Librosa.a4ToTuning(442)), 442, accuracy: 1e-9)
+
+        let fftFrequencies = try Librosa.fftFrequencies(sampleRate: 8, nFFT: 8)
+        XCTAssertEqual(fftFrequencies, [0, 1, 2, 3, 4])
+        let cqtFrequencies = try Librosa.cqtFrequencies(nBins: 3, fmin: 55, binsPerOctave: 12)
+        XCTAssertEqual(cqtFrequencies[0], 55, accuracy: 1e-12)
+        XCTAssertEqual(cqtFrequencies[1], 55 * pow(2, 1.0 / 12.0), accuracy: 1e-12)
+        let tempoFrequencies = try Librosa.tempoFrequencies(nBins: 4, hopLength: 512, sampleRate: 22_050)
+        XCTAssertEqual(tempoFrequencies[0], .infinity)
+        XCTAssertEqual(tempoFrequencies[1], 60 * 22_050 / 512, accuracy: 1e-12)
+        XCTAssertEqual(try Librosa.fourierTempoFrequencies(sampleRate: 22_050, winLength: 4, hopLength: 512).count, 3)
+        XCTAssertEqual(try Librosa.weighting(1_000, kind: "A"), 0, accuracy: 1e-2)
+        XCTAssertEqual(try Librosa.weighting([1_000], kind: "Z")[0], 0, accuracy: 1e-12)
 
         let tone = try Librosa.tone(frequency: 440, sampleRate: 8_000, duration: 0.25)
         XCTAssertEqual(tone.count, 2_000)

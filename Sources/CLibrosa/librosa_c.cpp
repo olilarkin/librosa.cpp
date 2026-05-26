@@ -283,6 +283,16 @@ std::string c_string_or_default(const char *value, const char *default_value) {
     return default_value;
 }
 
+librosa::WeightType weight_type_from_string(const char *value) {
+    std::string kind = c_string_or_default(value, "A");
+    if (kind == "A" || kind == "a") return librosa::WeightType::A;
+    if (kind == "B" || kind == "b") return librosa::WeightType::B;
+    if (kind == "C" || kind == "c") return librosa::WeightType::C;
+    if (kind == "D" || kind == "d") return librosa::WeightType::D;
+    if (kind == "Z" || kind == "z") return librosa::WeightType::Z;
+    throw librosa::ParameterError("Unsupported weighting type: " + kind);
+}
+
 } // namespace
 
 extern "C" {
@@ -397,6 +407,190 @@ int librosa_load(const char *path,
     });
 }
 
+int librosa_frames_to_samples(int64_t frames,
+                              int hop_length,
+                              int has_n_fft,
+                              int n_fft,
+                              int64_t *out_samples) {
+    return run([&]() {
+        if (!validate_out(out_samples, "out_samples")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_samples = static_cast<int64_t>(
+            librosa::frames_to_samples(static_cast<Eigen::Index>(frames),
+                                       hop_length,
+                                       optional_int(has_n_fft, n_fft)));
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_frames_to_samples_vector(const double *frames,
+                                     int64_t count,
+                                     int hop_length,
+                                     int has_n_fft,
+                                     int n_fft,
+                                     LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(frames, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::frames_to_samples(make_array(frames, count),
+                                                      hop_length,
+                                                      optional_int(has_n_fft, n_fft)),
+                           out);
+    });
+}
+
+int librosa_samples_to_frames(int64_t samples,
+                              int hop_length,
+                              int has_n_fft,
+                              int n_fft,
+                              int64_t *out_frames) {
+    return run([&]() {
+        if (!validate_out(out_frames, "out_frames")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_frames = static_cast<int64_t>(
+            librosa::samples_to_frames(static_cast<Eigen::Index>(samples),
+                                       hop_length,
+                                       optional_int(has_n_fft, n_fft)));
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_samples_to_frames_vector(const double *samples,
+                                     int64_t count,
+                                     int hop_length,
+                                     int has_n_fft,
+                                     int n_fft,
+                                     LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(samples, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::samples_to_frames(make_array(samples, count),
+                                                      hop_length,
+                                                      optional_int(has_n_fft, n_fft)),
+                           out);
+    });
+}
+
+int librosa_frames_to_time(int64_t frames,
+                           double sample_rate,
+                           int hop_length,
+                           int has_n_fft,
+                           int n_fft,
+                           double *out_time) {
+    return run([&]() {
+        if (!validate_out(out_time, "out_time")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_time = librosa::frames_to_time(static_cast<Eigen::Index>(frames),
+                                            sample_rate,
+                                            hop_length,
+                                            optional_int(has_n_fft, n_fft));
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_frames_to_time_vector(const double *frames,
+                                  int64_t count,
+                                  double sample_rate,
+                                  int hop_length,
+                                  int has_n_fft,
+                                  int n_fft,
+                                  LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(frames, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::frames_to_time(make_array(frames, count),
+                                                   sample_rate,
+                                                   hop_length,
+                                                   optional_int(has_n_fft, n_fft)),
+                           out);
+    });
+}
+
+int librosa_time_to_frames(double time,
+                           double sample_rate,
+                           int hop_length,
+                           int has_n_fft,
+                           int n_fft,
+                           int64_t *out_frames) {
+    return run([&]() {
+        if (!validate_out(out_frames, "out_frames")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_frames = static_cast<int64_t>(
+            librosa::time_to_frames(time, sample_rate, hop_length, optional_int(has_n_fft, n_fft)));
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_time_to_frames_vector(const double *times,
+                                  int64_t count,
+                                  double sample_rate,
+                                  int hop_length,
+                                  int has_n_fft,
+                                  int n_fft,
+                                  LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(times, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::time_to_frames(make_array(times, count),
+                                                   sample_rate,
+                                                   hop_length,
+                                                   optional_int(has_n_fft, n_fft)),
+                           out);
+    });
+}
+
+int librosa_time_to_samples(double time, double sample_rate, int64_t *out_samples) {
+    return run([&]() {
+        if (!validate_out(out_samples, "out_samples")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_samples = static_cast<int64_t>(librosa::time_to_samples(time, sample_rate));
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_time_to_samples_vector(const double *times,
+                                   int64_t count,
+                                   double sample_rate,
+                                   LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(times, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::time_to_samples(make_array(times, count), sample_rate), out);
+    });
+}
+
+int librosa_samples_to_time(int64_t samples, double sample_rate, double *out_time) {
+    return run([&]() {
+        if (!validate_out(out_time, "out_time")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_time = librosa::samples_to_time(static_cast<Eigen::Index>(samples), sample_rate);
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_samples_to_time_vector(const double *samples,
+                                   int64_t count,
+                                   double sample_rate,
+                                   LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(samples, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::samples_to_time(make_array(samples, count), sample_rate), out);
+    });
+}
+
 int librosa_midi_to_hz(double midi, double *out_hz) {
     return run([&]() {
         if (!validate_out(out_hz, "out_hz")) {
@@ -404,6 +598,15 @@ int librosa_midi_to_hz(double midi, double *out_hz) {
         }
         *out_hz = librosa::midi_to_hz(midi);
         return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_midi_to_hz_vector(const double *midi, int64_t count, LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(midi, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::midi_to_hz(make_array(midi, count)), out);
     });
 }
 
@@ -417,6 +620,15 @@ int librosa_hz_to_midi(double hz, double *out_midi) {
     });
 }
 
+int librosa_hz_to_midi_vector(const double *hz, int64_t count, LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(hz, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::hz_to_midi(make_array(hz, count)), out);
+    });
+}
+
 int librosa_hz_to_mel(double hz, int htk, double *out_mel) {
     return run([&]() {
         if (!validate_out(out_mel, "out_mel")) {
@@ -427,6 +639,15 @@ int librosa_hz_to_mel(double hz, int htk, double *out_mel) {
     });
 }
 
+int librosa_hz_to_mel_vector(const double *hz, int64_t count, int htk, LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(hz, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::hz_to_mel(make_array(hz, count), htk != 0), out);
+    });
+}
+
 int librosa_mel_to_hz(double mel, int htk, double *out_hz) {
     return run([&]() {
         if (!validate_out(out_hz, "out_hz")) {
@@ -434,6 +655,15 @@ int librosa_mel_to_hz(double mel, int htk, double *out_hz) {
         }
         *out_hz = librosa::mel_to_hz(mel, htk != 0);
         return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_mel_to_hz_vector(const double *mel, int64_t count, int htk, LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(mel, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::mel_to_hz(make_array(mel, count), htk != 0), out);
     });
 }
 
@@ -457,15 +687,150 @@ int librosa_note_to_hz(const char *note, double *out_hz) {
     });
 }
 
+int librosa_hz_to_octs(double hz, double tuning, int bins_per_octave, double *out_octs) {
+    return run([&]() {
+        if (!validate_out(out_octs, "out_octs")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_octs = librosa::hz_to_octs(hz, tuning, bins_per_octave);
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_hz_to_octs_vector(const double *hz,
+                              int64_t count,
+                              double tuning,
+                              int bins_per_octave,
+                              LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(hz, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::hz_to_octs(make_array(hz, count), tuning, bins_per_octave), out);
+    });
+}
+
+int librosa_octs_to_hz(double octs, double tuning, int bins_per_octave, double *out_hz) {
+    return run([&]() {
+        if (!validate_out(out_hz, "out_hz")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_hz = librosa::octs_to_hz(octs, tuning, bins_per_octave);
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_octs_to_hz_vector(const double *octs,
+                              int64_t count,
+                              double tuning,
+                              int bins_per_octave,
+                              LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(octs, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::octs_to_hz(make_array(octs, count), tuning, bins_per_octave), out);
+    });
+}
+
+int librosa_a4_to_tuning(double a4, int bins_per_octave, double *out_tuning) {
+    return run([&]() {
+        if (!validate_out(out_tuning, "out_tuning")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_tuning = librosa::A4_to_tuning(a4, bins_per_octave);
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_a4_to_tuning_vector(const double *a4,
+                                int64_t count,
+                                int bins_per_octave,
+                                LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(a4, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::A4_to_tuning(make_array(a4, count), bins_per_octave), out);
+    });
+}
+
+int librosa_tuning_to_a4(double tuning, int bins_per_octave, double *out_a4) {
+    return run([&]() {
+        if (!validate_out(out_a4, "out_a4")) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        *out_a4 = librosa::tuning_to_A4(tuning, bins_per_octave);
+        return LIBROSA_STATUS_OK;
+    });
+}
+
+int librosa_tuning_to_a4_vector(const double *tuning,
+                                int64_t count,
+                                int bins_per_octave,
+                                LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(tuning, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::tuning_to_A4(make_array(tuning, count), bins_per_octave), out);
+    });
+}
+
 int librosa_fft_frequencies(double sample_rate, int n_fft, LibrosaVector *out) {
     return run([&]() {
         return copy_vector(librosa::fft_frequencies(sample_rate, n_fft), out);
     });
 }
 
+int librosa_cqt_frequencies(int n_bins,
+                            double fmin,
+                            int bins_per_octave,
+                            double tuning,
+                            LibrosaVector *out) {
+    return run([&]() {
+        return copy_vector(librosa::cqt_frequencies(n_bins, fmin, bins_per_octave, tuning), out);
+    });
+}
+
 int librosa_mel_frequencies(int n_mels, double fmin, double fmax, int htk, LibrosaVector *out) {
     return run([&]() {
         return copy_vector(librosa::mel_frequencies(n_mels, fmin, fmax, htk != 0), out);
+    });
+}
+
+int librosa_tempo_frequencies(int n_bins,
+                              int hop_length,
+                              double sample_rate,
+                              LibrosaVector *out) {
+    return run([&]() {
+        return copy_vector(librosa::tempo_frequencies(n_bins, hop_length, sample_rate), out);
+    });
+}
+
+int librosa_fourier_tempo_frequencies(double sample_rate,
+                                      int win_length,
+                                      int hop_length,
+                                      LibrosaVector *out) {
+    return run([&]() {
+        return copy_vector(librosa::fourier_tempo_frequencies(sample_rate, win_length, hop_length), out);
+    });
+}
+
+int librosa_frequency_weighting(const double *frequencies,
+                                int64_t count,
+                                const char *kind,
+                                int has_min_db,
+                                double min_db,
+                                LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(frequencies, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(librosa::frequency_weighting(make_array(frequencies, count),
+                                                        weight_type_from_string(kind),
+                                                        optional_real(has_min_db, min_db)),
+                           out);
     });
 }
 
