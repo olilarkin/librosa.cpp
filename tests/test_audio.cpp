@@ -207,9 +207,15 @@ TEST_P(ResampleTest, BasicResample) {
 
 INSTANTIATE_TEST_SUITE_P(ResampleTests, ResampleTest,
     ::testing::Values(
+#ifdef LIBROSA_TEST_FFT_BACKEND_PFFFT
+        std::make_tuple(24000.0, 8000.0, "fft"),
+        std::make_tuple(24000.0, 24000.0, "fft"),
+        std::make_tuple(48000.0, 24000.0, "fft"),
+#else
         std::make_tuple(22050.0, 8000.0, "fft"),
         std::make_tuple(22050.0, 22050.0, "fft"),
         std::make_tuple(44100.0, 22050.0, "fft"),
+#endif
         std::make_tuple(22050.0, 8000.0, "linear"),
         std::make_tuple(44100.0, 22050.0, "linear"),
         std::make_tuple(22050.0, 8000.0, "kaiser_hq"),
@@ -217,10 +223,17 @@ INSTANTIATE_TEST_SUITE_P(ResampleTests, ResampleTest,
     ));
 
 TEST(ResampleTest, ScalePreservesEnergyDensity) {
+#ifdef LIBROSA_TEST_FFT_BACKEND_PFFFT
+    Real orig_sr = 24000;
+    Real target_sr = 12000;
+
+    ArrayXr y = random_array(24000);
+#else
     Real orig_sr = 22050;
     Real target_sr = 11025;
 
     ArrayXr y = random_array(22050);
+#endif
 
     ArrayXr y_resampled = resample(y, orig_sr, target_sr, "fft", true, true);
 

@@ -146,6 +146,34 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure -j2
 
+  pffft:
+    name: "Build & test (Ubuntu, native PFFFT backend)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -yy
+          sudo apt-get install -yy cmake ninja-build pkg-config libsndfile1-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DLIBROSA_BUILD_TESTS=ON
+          -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF
+          -DLIBROSA_BUILD_CLI=ON
+          -DLIBROSA_FFT_BACKEND=pffft
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j2
+
   crossval:
     name: "Cross-validation vs Python librosa"
     runs-on: ubuntu-latest
