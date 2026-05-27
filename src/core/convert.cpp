@@ -433,6 +433,10 @@ ArrayXr mel_frequencies(int n_mels, Real fmin, Real fmax, bool htk) {
 }
 
 ArrayXr tempo_frequencies(int n_bins, int hop_length, Real sr) {
+    if (n_bins < 1) {
+        throw ParameterError("n_bins must be positive");
+    }
+
     ArrayXr freqs(n_bins);
     freqs(0) = std::numeric_limits<Real>::infinity();
     for (int i = 1; i < n_bins; ++i) {

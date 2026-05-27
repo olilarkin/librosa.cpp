@@ -118,6 +118,18 @@ jobs:
           path: .build/xcframework/CLibrosa.xcframework
           if-no-files-found: error
 
+  swift-package:
+    name: "Build & test Swift package"
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Run Swift tests
+        run: swift test
+
   pocketfft:
     name: "Build & test (Ubuntu, pocketfft backend)"
     runs-on: ubuntu-latest

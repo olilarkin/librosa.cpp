@@ -428,6 +428,10 @@ TEST_P(TempoFrequenciesTest, BasicTempoFrequencies) {
     }
 }
 
+TEST(TempoFrequenciesTest, InvalidNBinsThrows) {
+    EXPECT_THROW(tempo_frequencies(0, 512, 22050), ParameterError);
+}
+
 INSTANTIATE_TEST_SUITE_P(TempoFrequenciesTests, TempoFrequenciesTest,
     ::testing::Values(
         std::make_tuple(1, 512, 22050),
