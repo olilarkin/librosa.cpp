@@ -804,6 +804,9 @@ int librosa_tempo_frequencies(int n_bins,
                               double sample_rate,
                               LibrosaVector *out) {
     return run([&]() {
+        if (n_bins < 1) {
+            return fail_with("n_bins must be positive");
+        }
         return copy_vector(librosa::tempo_frequencies(n_bins, hop_length, sample_rate), out);
     });
 }

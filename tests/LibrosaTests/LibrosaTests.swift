@@ -34,6 +34,7 @@ final class LibrosaTests: XCTestCase {
         let tempoFrequencies = try Librosa.tempoFrequencies(nBins: 4, hopLength: 512, sampleRate: 22_050)
         XCTAssertEqual(tempoFrequencies[0], .infinity)
         XCTAssertEqual(tempoFrequencies[1], 60 * 22_050 / 512, accuracy: 1e-12)
+        XCTAssertThrowsError(try Librosa.tempoFrequencies(nBins: 0, hopLength: 512, sampleRate: 22_050))
         XCTAssertEqual(try Librosa.fourierTempoFrequencies(sampleRate: 22_050, winLength: 4, hopLength: 512).count, 3)
         XCTAssertEqual(try Librosa.weighting(1_000, kind: "A"), 0, accuracy: 1e-2)
         XCTAssertEqual(try Librosa.weighting([1_000], kind: "Z")[0], 0, accuracy: 1e-12)
