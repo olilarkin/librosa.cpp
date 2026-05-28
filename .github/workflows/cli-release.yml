@@ -56,7 +56,7 @@ jobs:
         run: cmake --build build --target librosa_cli
 
       - name: Smoke test CLI
-        run: ./build/librosa --help
+        run: ./build/rosa --help
 
       - name: Package CLI
         id: package
@@ -72,7 +72,7 @@ jobs:
           package="librosa-cli-${version}-${platform}-${arch}"
 
           mkdir -p "${package}"
-          cp build/librosa "${package}/"
+          cp build/rosa "${package}/"
           cp LICENSE NOTICE.md README.md "${package}/"
           cat > "${package}/DEPENDENCIES.txt" <<'EOF'
           The CLI binary dynamically links against the platform C++ runtime and libsndfile.

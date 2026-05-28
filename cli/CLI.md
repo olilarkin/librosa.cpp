@@ -1,6 +1,6 @@
-# librosa CLI Reference
+# rosa CLI Reference
 
-A command-line tool for audio analysis, powered by the librosa C++ library.
+`rosa` is a command-line tool for audio analysis, powered by the librosa C++ library.
 
 ## Building
 
@@ -9,12 +9,12 @@ cmake -S . -B build -DLIBROSA_BUILD_CLI=ON
 cmake --build build --target librosa_cli
 ```
 
-The binary is produced at `build/librosa`.
+The binary is produced at `build/rosa`.
 
 ## Usage
 
 ```
-librosa [OPTIONS] <file> <SUBCOMMAND> [SUBCOMMAND OPTIONS]
+rosa [OPTIONS] <file> <SUBCOMMAND> [SUBCOMMAND OPTIONS]
 ```
 
 The audio file path is a required positional argument, followed by exactly one subcommand.
@@ -90,7 +90,7 @@ time,c0,c1,c2
 Show audio file metadata.
 
 ```bash
-librosa file.wav info
+rosa file.wav info
 ```
 
 Output: key-value pairs for filename, native sample rate, duration, sample count, and channel count.
@@ -100,8 +100,8 @@ Output: key-value pairs for filename, native sample rate, duration, sample count
 Estimate global tempo in BPM.
 
 ```bash
-librosa file.wav tempo
-librosa file.wav tempo --start-bpm 140
+rosa file.wav tempo
+rosa file.wav tempo --start-bpm 140
 ```
 
 | Option | Default | Description |
@@ -115,8 +115,8 @@ Output: scalar BPM value.
 Detect beat positions.
 
 ```bash
-librosa file.wav beat
-librosa file.wav beat --tightness 200
+rosa file.wav beat
+rosa file.wav beat --tightness 200
 ```
 
 | Option | Default | Description |
@@ -131,8 +131,8 @@ Output: 1D vector of beat times (seconds).
 Detect onset (note attack) positions.
 
 ```bash
-librosa file.wav onset
-librosa file.wav onset --backtrack
+rosa file.wav onset
+rosa file.wav onset --backtrack
 ```
 
 | Option | Default | Description |
@@ -146,8 +146,8 @@ Output: 1D vector of onset times (seconds).
 Estimate fundamental frequency per frame using pYIN or YIN.
 
 ```bash
-librosa file.wav pitch
-librosa file.wav pitch --method yin --fmin 80 --fmax 1000
+rosa file.wav pitch
+rosa file.wav pitch --method yin --fmin 80 --fmax 1000
 ```
 
 | Option | Default | Description |
@@ -163,8 +163,8 @@ Output: per-frame with columns `time`, `f0`, `voiced_probability`. Unvoiced fram
 Compute Mel-frequency cepstral coefficients.
 
 ```bash
-librosa file.wav mfcc
-librosa file.wav mfcc --n-mfcc 13 --n-mels 40
+rosa file.wav mfcc
+rosa file.wav mfcc --n-mfcc 13 --n-mels 40
 ```
 
 | Option | Default | Description |
@@ -179,8 +179,8 @@ Output: matrix (n_frames x n_mfcc). Column labels: `c0`, `c1`, ...
 Compute mel spectrogram in decibels.
 
 ```bash
-librosa file.wav melspectrogram
-librosa file.wav melspectrogram --n-mels 64
+rosa file.wav melspectrogram
+rosa file.wav melspectrogram --n-mels 64
 ```
 
 | Option | Default | Description |
@@ -194,8 +194,8 @@ Output: matrix (n_frames x n_mels) in dB. Column labels: `m0`, `m1`, ...
 Compute a chromagram (pitch class energy distribution).
 
 ```bash
-librosa file.wav chroma
-librosa file.wav chroma --variant cqt
+rosa file.wav chroma
+rosa file.wav chroma --variant cqt
 ```
 
 | Option | Default | Description |
@@ -209,7 +209,7 @@ Output: matrix (n_frames x 12). Column labels: `C`, `C#`, `D`, ..., `B`.
 Compute the spectral centroid (center of mass of the spectrum).
 
 ```bash
-librosa file.wav spectral-centroid
+rosa file.wav spectral-centroid
 ```
 
 Output: per-frame, single column `centroid` (Hz).
@@ -219,7 +219,7 @@ Output: per-frame, single column `centroid` (Hz).
 Compute the spectral bandwidth (weighted spread around the centroid).
 
 ```bash
-librosa file.wav spectral-bandwidth
+rosa file.wav spectral-bandwidth
 ```
 
 Output: per-frame, single column `bandwidth` (Hz).
@@ -229,8 +229,8 @@ Output: per-frame, single column `bandwidth` (Hz).
 Compute the spectral rolloff frequency.
 
 ```bash
-librosa file.wav spectral-rolloff
-librosa file.wav spectral-rolloff --roll-percent 0.95
+rosa file.wav spectral-rolloff
+rosa file.wav spectral-rolloff --roll-percent 0.95
 ```
 
 | Option | Default | Description |
@@ -244,7 +244,7 @@ Output: per-frame, single column `rolloff` (Hz).
 Compute spectral flatness (tonality measure: 0 = tonal, 1 = noisy).
 
 ```bash
-librosa file.wav spectral-flatness
+rosa file.wav spectral-flatness
 ```
 
 Output: per-frame, single column `flatness`.
@@ -254,8 +254,8 @@ Output: per-frame, single column `flatness`.
 Compute spectral contrast across frequency bands.
 
 ```bash
-librosa file.wav spectral-contrast
-librosa file.wav spectral-contrast --n-bands 4
+rosa file.wav spectral-contrast
+rosa file.wav spectral-contrast --n-bands 4
 ```
 
 | Option | Default | Description |
@@ -269,7 +269,7 @@ Output: matrix (n_frames x n_bands+1). Column labels: `band0`, `band1`, ..., `va
 Compute root-mean-square energy per frame.
 
 ```bash
-librosa file.wav rms
+rosa file.wav rms
 ```
 
 Output: per-frame, single column `rms`.
@@ -279,7 +279,7 @@ Output: per-frame, single column `rms`.
 Compute zero crossing rate per frame.
 
 ```bash
-librosa file.wav zcr
+rosa file.wav zcr
 ```
 
 Output: per-frame, single column `zcr`.
@@ -289,7 +289,7 @@ Output: per-frame, single column `zcr`.
 Compute tonal centroid features (Harte et al., 2006).
 
 ```bash
-librosa file.wav tonnetz
+rosa file.wav tonnetz
 ```
 
 Output: matrix (n_frames x 6). Column labels: `fifth_x`, `fifth_y`, `minor_x`, `minor_y`, `major_x`, `major_y`.
@@ -299,7 +299,7 @@ Output: matrix (n_frames x 6). Column labels: `fifth_x`, `fifth_y`, `minor_x`, `
 Estimate tuning offset from A440.
 
 ```bash
-librosa file.wav tuning
+rosa file.wav tuning
 ```
 
 Output: scalar value in fractions of a semitone bin (multiply by 100 for cents).
@@ -309,7 +309,7 @@ Output: scalar value in fractions of a semitone bin (multiply by 100 for cents).
 Compute magnitude spectrogram in decibels.
 
 ```bash
-librosa file.wav stft
+rosa file.wav stft
 ```
 
 Output: matrix (n_frames x n_fft/2+1) in dB. Column labels: `f0`, `f1`, ...
@@ -321,8 +321,8 @@ This produces large output. Consider piping to a file or using `--format csv` fo
 Find non-silent region boundaries.
 
 ```bash
-librosa file.wav trim
-librosa file.wav trim --top-db 30
+rosa file.wav trim
+rosa file.wav trim --top-db 30
 ```
 
 | Option | Default | Description |
@@ -336,8 +336,8 @@ Output: key-value pairs for `start_time`, `end_time`, `start_sample`, `end_sampl
 Harmonic/percussive source separation. Writes a WAV file.
 
 ```bash
-librosa file.wav hpss -o harmonic.wav
-librosa file.wav hpss -o percussive.wav --component percussive
+rosa file.wav hpss -o harmonic.wav
+rosa file.wav hpss -o percussive.wav --component percussive
 ```
 
 | Option | Default | Description |
@@ -351,33 +351,33 @@ Output: writes a 16-bit PCM WAV file. Progress message to stderr.
 
 ```bash
 # Quick file overview
-librosa song.wav info
+rosa song.wav info
 
 # Get tempo estimate
-librosa song.wav tempo
+rosa song.wav tempo
 
 # Onset times as JSON for downstream processing
-librosa song.wav --format json onset | python3 -m json.tool
+rosa song.wav --format json onset | python3 -m json.tool
 
 # Extract 13 MFCCs as CSV, no time column
-librosa song.wav --no-time --format csv mfcc --n-mfcc 13 > features.csv
+rosa song.wav --no-time --format csv mfcc --n-mfcc 13 > features.csv
 
 # Compare pitch methods
-librosa song.wav pitch --method pyin > pyin.tsv
-librosa song.wav pitch --method yin  > yin.tsv
+rosa song.wav pitch --method pyin > pyin.tsv
+rosa song.wav pitch --method yin  > yin.tsv
 
 # Load at native sample rate, analyze first 10 seconds
-librosa --sr 0 --duration 10 song.wav melspectrogram --format json > mel.json
+rosa --sr 0 --duration 10 song.wav melspectrogram --format json > mel.json
 
 # Separate harmonic and percussive components
-librosa song.wav hpss -o harmonic.wav --component harmonic
-librosa song.wav hpss -o percussive.wav --component percussive
+rosa song.wav hpss -o harmonic.wav --component harmonic
+rosa song.wav hpss -o percussive.wav --component percussive
 
 # Chroma from constant-Q transform
-librosa song.wav chroma --variant cqt
+rosa song.wav chroma --variant cqt
 
 # Custom STFT parameters for all spectral features
-librosa --n-fft 4096 --hop-length 1024 song.wav spectral-centroid
+rosa --n-fft 4096 --hop-length 1024 song.wav spectral-centroid
 ```
 
 ## Architecture
