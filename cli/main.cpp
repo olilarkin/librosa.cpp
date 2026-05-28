@@ -27,7 +27,7 @@ void register_hpss(CLI::App& app, CommonOptions& opts);
 } // namespace cli
 
 int main(int argc, char** argv) {
-    CLI::App app{"librosa: Audio analysis from the command line"};
+    CLI::App app{"rosa: Audio analysis from the command line"};
     app.require_subcommand(1);
 
     cli::CommonOptions opts;
