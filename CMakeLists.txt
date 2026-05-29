@@ -397,7 +397,7 @@ if(LIBROSA_BUILD_CLI)
         target_compile_definitions(librosa_cli PRIVATE LIBROSA_HAS_AUDIOTOOLBOX)
     endif()
 
-    set_target_properties(librosa_cli PROPERTIES OUTPUT_NAME librosa)
+    set_target_properties(librosa_cli PROPERTIES OUTPUT_NAME rosa)
 
     install(TARGETS librosa_cli
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

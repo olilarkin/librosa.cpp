@@ -19,7 +19,7 @@ analysis library, built on [Eigen](https://eigen.tuxfamily.org/). Tracks upstrea
 - Pitch (YIN, pYIN), tuning estimation
 - Viterbi decoding, DTW, sequence utilities
 - Effects (time stretching, pitch shifting, trimming, remixing)
-- `librosa` CLI for quick analysis from the terminal
+- `rosa` CLI for quick analysis from the terminal
 - SwiftPM package with a Swift API and C ABI target for Apple platforms
 - WebAssembly/npm package with a TypeScript API and browser demo
 
@@ -211,13 +211,13 @@ add new cases.
 
 ## CLI
 
-With `-DLIBROSA_BUILD_CLI=ON` (on by default in CI), a `librosa` binary is
-built at `build/librosa`. Usage:
+With `-DLIBROSA_BUILD_CLI=ON` (on by default in CI), a `rosa` binary is
+built at `build/rosa`. Usage:
 
 ```bash
-./build/librosa <file.wav> info
-./build/librosa <file.wav> tempo
-./build/librosa <file.wav> mfcc --n-mfcc 20
+./build/rosa <file.wav> info
+./build/rosa <file.wav> tempo
+./build/rosa <file.wav> mfcc --n-mfcc 20
 ```
 
 Full reference: `cli/CLI.md`.
