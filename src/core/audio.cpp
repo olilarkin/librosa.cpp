@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numeric>
 #include <vector>
 #include "../internal/fft.hpp"
 
@@ -276,6 +277,11 @@ namespace {
         Real rolloff;
     };
 
+    struct RationalResamplePlan {
+        Eigen::Index source_step;
+        Eigen::Index phase_count;
+    };
+
     bool is_kaiser_resampler(const std::string& res_type) {
         return res_type == "kaiser" ||
                res_type == "kaiser_vhq" ||
@@ -337,8 +343,45 @@ namespace {
         return modified_bessel_i0(arg) / i0_beta;
     }
 
-    ArrayXr kaiser_sinc_resample(const ArrayXr& y, Real ratio, Eigen::Index n_samples,
-                                  const SincResamplerSpec& spec) {
+    std::optional<RationalResamplePlan> rational_resample_plan(
+            Real orig_sr, Real target_sr, Real ratio) {
+        long long orig_i = static_cast<long long>(std::llround(orig_sr));
+        long long target_i = static_cast<long long>(std::llround(target_sr));
+
+        if (orig_i <= 0 || target_i <= 0) {
+            return std::nullopt;
+        }
+
+        if (std::abs(orig_sr - static_cast<Real>(orig_i)) > 1e-6 ||
+            std::abs(target_sr - static_cast<Real>(target_i)) > 1e-6) {
+            return std::nullopt;
+        }
+
+        Real rational_ratio =
+            static_cast<Real>(target_i) / static_cast<Real>(orig_i);
+        if (std::abs(ratio - rational_ratio) >
+            1e-12 * std::max<Real>(1.0, std::abs(ratio))) {
+            return std::nullopt;
+        }
+
+        long long divisor = std::gcd(orig_i, target_i);
+        long long source_step = orig_i / divisor;
+        long long phase_count = target_i / divisor;
+
+        // Avoid excessive setup for unusual non-reduced rates.
+        if (phase_count > 4096) {
+            return std::nullopt;
+        }
+
+        return RationalResamplePlan{
+            static_cast<Eigen::Index>(source_step),
+            static_cast<Eigen::Index>(phase_count)
+        };
+    }
+
+    ArrayXr kaiser_sinc_resample_direct(const ArrayXr& y, Real ratio,
+                                         Eigen::Index n_samples,
+                                         const SincResamplerSpec& spec) {
         ArrayXr y_hat(n_samples);
         if (n_samples == 0) {
             return y_hat;
@@ -372,6 +415,82 @@ namespace {
         }
 
         return y_hat;
+    }
+
+    ArrayXr kaiser_sinc_resample_polyphase(const ArrayXr& y, Real ratio,
+                                            Eigen::Index n_samples,
+                                            const SincResamplerSpec& spec,
+                                            const RationalResamplePlan& plan) {
+        ArrayXr y_hat(n_samples);
+        if (n_samples == 0) {
+            return y_hat;
+        }
+
+        Real cutoff = std::min<Real>(1.0, ratio) * spec.rolloff;
+        cutoff = std::min<Real>(1.0, std::max<Real>(cutoff, 1e-8));
+
+        Eigen::Index radius = static_cast<Eigen::Index>(
+            std::ceil(static_cast<Real>(spec.zero_crossings) / cutoff));
+        radius = std::max<Eigen::Index>(radius, 1);
+
+        Real i0_beta = modified_bessel_i0(spec.beta);
+        const Eigen::Index kernel_size = 2 * radius + 1;
+
+        std::vector<Eigen::Index> phase_center_offset(
+            static_cast<size_t>(plan.phase_count));
+        std::vector<std::vector<Real>> phase_weights(
+            static_cast<size_t>(plan.phase_count),
+            std::vector<Real>(static_cast<size_t>(kernel_size)));
+
+        for (Eigen::Index phase = 0; phase < plan.phase_count; ++phase) {
+            Real input_pos = static_cast<Real>(phase) / ratio;
+            Eigen::Index center = static_cast<Eigen::Index>(std::floor(input_pos));
+            phase_center_offset[static_cast<size_t>(phase)] = center;
+
+            for (Eigen::Index rel = -radius; rel <= radius; ++rel) {
+                Real distance = input_pos - static_cast<Real>(center + rel);
+                Real window = kaiser_window(distance, static_cast<Real>(radius),
+                                            spec.beta, i0_beta);
+                Real weight = cutoff * sinc(cutoff * distance) * window;
+                phase_weights[static_cast<size_t>(phase)]
+                             [static_cast<size_t>(rel + radius)] = weight;
+            }
+        }
+
+        for (Eigen::Index out_idx = 0; out_idx < n_samples; ++out_idx) {
+            Eigen::Index block = out_idx / plan.phase_count;
+            Eigen::Index phase = out_idx - block * plan.phase_count;
+            Eigen::Index center =
+                block * plan.source_step +
+                phase_center_offset[static_cast<size_t>(phase)];
+
+            Eigen::Index first_rel = std::max<Eigen::Index>(-radius, -center);
+            Eigen::Index last_rel =
+                std::min<Eigen::Index>(radius, y.size() - 1 - center);
+
+            Real sample = 0.0;
+            const auto& weights = phase_weights[static_cast<size_t>(phase)];
+            for (Eigen::Index rel = first_rel; rel <= last_rel; ++rel) {
+                sample += y(center + rel) *
+                          weights[static_cast<size_t>(rel + radius)];
+            }
+
+            y_hat(out_idx) = sample;
+        }
+
+        return y_hat;
+    }
+
+    ArrayXr kaiser_sinc_resample(const ArrayXr& y, Real orig_sr, Real target_sr,
+                                  Real ratio, Eigen::Index n_samples,
+                                  const SincResamplerSpec& spec) {
+        std::optional<RationalResamplePlan> plan =
+            rational_resample_plan(orig_sr, target_sr, ratio);
+        if (plan) {
+            return kaiser_sinc_resample_polyphase(y, ratio, n_samples, spec, *plan);
+        }
+
+        return kaiser_sinc_resample_direct(y, ratio, n_samples, spec);
     }
 }
 
@@ -602,7 +721,8 @@ ArrayXr resample(const ArrayXr& y, Real orig_sr, Real target_sr,
     ArrayXr y_hat;
 
     if (is_kaiser_resampler(res_type)) {
-        y_hat = kaiser_sinc_resample(y, ratio, n_samples, kaiser_resampler_spec(res_type));
+        y_hat = kaiser_sinc_resample(y, orig_sr, target_sr, ratio, n_samples,
+                                     kaiser_resampler_spec(res_type));
     } else if (res_type == "fft" || res_type == "scipy") {
         int n_fft = y.size();
         int n_out = n_samples;
