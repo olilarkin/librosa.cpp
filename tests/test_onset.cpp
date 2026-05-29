@@ -133,6 +133,25 @@ TEST(OnsetStrengthTest, FromSpectrogram) {
     EXPECT_GT(env.size(), 0);
 }
 
+TEST(OnsetStrengthTest, MedianAggregateFromSpectrogram) {
+    ArrayXXr S(4, 3);
+    S << 0.0, 0.0, 2.0,
+         0.0, 0.0, 2.0,
+         0.0, 0.0, 2.0,
+         0.0, 10.0, 12.0;
+
+    ArrayXr mean_env = onset_strength(S, 22050, 2048, 512, 1, 1,
+                                      false, false, AggregateFunc::Mean);
+    ArrayXr median_env = onset_strength(S, 22050, 2048, 512, 1, 1,
+                                        false, false, AggregateFunc::Median);
+
+    ASSERT_EQ(mean_env.size(), 3);
+    ASSERT_EQ(median_env.size(), 3);
+    EXPECT_NEAR(mean_env(1), 2.5, 1e-12);
+    EXPECT_NEAR(median_env(1), 0.0, 1e-12);
+    EXPECT_NEAR(median_env(2), 2.0, 1e-12);
+}
+
 // ============================================================================
 // Onset Detection Tests
 // ============================================================================
