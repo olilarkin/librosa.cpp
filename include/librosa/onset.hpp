@@ -53,7 +53,8 @@ ArrayXr onset_strength(
     int lag = 1,
     int max_size = 1,
     bool detrend = false,
-    bool center = true);
+    bool center = true,
+    AggregateFunc aggregate = AggregateFunc::Mean);
 
 /// Compute onset strength from pre-computed spectrogram
 ArrayXr onset_strength(
@@ -64,7 +65,8 @@ ArrayXr onset_strength(
     int lag = 1,
     int max_size = 1,
     bool detrend = false,
-    bool center = true);
+    bool center = true,
+    AggregateFunc aggregate = AggregateFunc::Mean);
 
 /// Compute spectral flux onset strength envelope across multiple channels
 /// @param y Audio time series (optional if S is provided)

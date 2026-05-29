@@ -152,6 +152,40 @@ ArrayXr lfilter_detrend(const ArrayXr& x) {
     return y;
 }
 
+Real median_of_column(const ArrayXXr& data, Eigen::Index col) {
+    std::vector<Real> values(static_cast<size_t>(data.rows()));
+    for (Eigen::Index row = 0; row < data.rows(); ++row) {
+        values[static_cast<size_t>(row)] = data(row, col);
+    }
+
+    size_t mid = values.size() / 2;
+    std::nth_element(values.begin(), values.begin() + mid, values.end());
+    Real upper = values[mid];
+
+    if (values.size() % 2 == 1) {
+        return upper;
+    }
+
+    std::nth_element(values.begin(), values.begin() + mid - 1, values.end());
+    return 0.5 * (values[mid - 1] + upper);
+}
+
+ArrayXr aggregate_onset_env(const ArrayXXr& onset_env, AggregateFunc aggregate) {
+    if (aggregate == AggregateFunc::Mean) {
+        return onset_env.colwise().mean();
+    }
+
+    if (aggregate == AggregateFunc::Median) {
+        ArrayXr env(onset_env.cols());
+        for (Eigen::Index col = 0; col < onset_env.cols(); ++col) {
+            env(col) = median_of_column(onset_env, col);
+        }
+        return env;
+    }
+
+    throw ParameterError("Unsupported onset strength aggregate");
+}
+
 } // anonymous namespace
 
 // ============================================================================
@@ -166,7 +200,8 @@ ArrayXr onset_strength(
     int lag,
     int max_size,
     bool detrend,
-    bool center) {
+    bool center,
+    AggregateFunc aggregate) {
 
     // Compute mel spectrogram
     ArrayXXr S = feature::melspectrogram(y, sr, n_fft, hop_length);
@@ -174,7 +209,8 @@ ArrayXr onset_strength(
     // Convert to dB
     S = power_to_db(S, 1.0, 1e-10, 80.0);
 
-    return onset_strength(S, sr, n_fft, hop_length, lag, max_size, detrend, center);
+    return onset_strength(S, sr, n_fft, hop_length, lag, max_size, detrend,
+                          center, aggregate);
 }
 
 ArrayXr onset_strength(
@@ -185,7 +221,8 @@ ArrayXr onset_strength(
     int lag,
     int max_size,
     bool detrend,
-    bool center) {
+    bool center,
+    AggregateFunc aggregate) {
 
     if (!util::is_positive_int(lag)) {
         throw ParameterError("lag must be a positive integer");
@@ -215,8 +252,8 @@ ArrayXr onset_strength(
     // Discard negatives (decreasing amplitude)
     onset_env = onset_env.max(0.0);
 
-    // Aggregate across frequency (mean)
-    ArrayXr env = onset_env.colwise().mean();
+    // Aggregate across frequency
+    ArrayXr env = aggregate_onset_env(onset_env, aggregate);
 
     // Compensate for lag and centering
     int pad_width = lag;
