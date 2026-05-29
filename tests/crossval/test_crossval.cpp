@@ -277,6 +277,18 @@ protected:
         EXPECT_GT(match_ratio, 0.5) << msg << " too few events matched";
     }
 
+    void expectEventsEqual(const std::vector<Eigen::Index>& actual,
+                           const ArrayXr& expected,
+                           const std::string& msg = "") {
+        ASSERT_EQ(actual.size(), static_cast<size_t>(expected.size()))
+            << msg << " event count mismatch";
+        for (Eigen::Index i = 0; i < expected.size(); ++i) {
+            EXPECT_EQ(actual[static_cast<size_t>(i)],
+                      static_cast<Eigen::Index>(std::llround(expected(i))))
+                << msg << " at event " << i;
+        }
+    }
+
     // Check reconstruction quality: ||W*H - S|| / ||S|| < tol
     void expectReconstructionQuality(const ArrayXXr& W, const ArrayXXr& H,
                                      const ArrayXXr& S, double tol = 0.1,
@@ -936,7 +948,7 @@ TEST_F(CrossValidationTest, BeatTrackFrames) {
     auto [bpm, beats_cpp] = beat::beat_track(onset_env, 22050);
     ArrayXr beats_py = beats_ref.toArrayXr();
 
-    expectEventsNear(beats_cpp, beats_py, 3, 0.5, "beat_track");
+    expectEventsEqual(beats_cpp, beats_py, "beat_track");
 }
 
 TEST_F(CrossValidationTest, BeatPLP) {
