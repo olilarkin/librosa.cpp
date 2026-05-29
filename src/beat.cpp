@@ -268,12 +268,19 @@ namespace {
 
 // Normalize onsets by standard deviation
 ArrayXr normalize_onsets(const ArrayXr& onsets) {
-    Real mean = onsets.mean();
-    Real std = std::sqrt((onsets - mean).square().mean());
-    if (std < util::tiny<Real>()) {
-        return onsets;
+    if (onsets.size() <= 1) {
+        return onsets / util::tiny<Real>();
     }
-    return onsets / std;
+
+    Real mean = onsets.mean();
+    Real variance = (onsets - mean).square().sum() /
+                    static_cast<Real>(onsets.size() - 1);
+    Real std = std::sqrt(variance);
+    return onsets / (std + util::tiny<Real>());
+}
+
+int round_to_nearest_even(Real value) {
+    return static_cast<int>(std::nearbyint(value));
 }
 
 // Compute local score with Gaussian weighting
@@ -281,7 +288,7 @@ ArrayXr beat_local_score(const ArrayXr& onset_envelope, Real frames_per_beat) {
     Eigen::Index N = onset_envelope.size();
     ArrayXr localscore(N);
 
-    int fpb = static_cast<int>(std::round(frames_per_beat));
+    int fpb = round_to_nearest_even(frames_per_beat);
     int window_size = 2 * fpb + 1;
 
     // Create Gaussian window
@@ -294,11 +301,15 @@ ArrayXr beat_local_score(const ArrayXr& onset_envelope, Real frames_per_beat) {
     // Same-mode convolution
     for (Eigen::Index i = 0; i < N; ++i) {
         Real sum = 0.0;
-        for (int k = 0; k < window_size; ++k) {
+        Eigen::Index half_window = window_size / 2;
+        Eigen::Index k_start = std::max<Eigen::Index>(
+            0, i + half_window - N + 1);
+        Eigen::Index k_stop = std::min<Eigen::Index>(
+            i + half_window + 1, window_size);
+
+        for (Eigen::Index k = k_start; k < k_stop; ++k) {
             Eigen::Index j = i + window_size / 2 - k;
-            if (j >= 0 && j < N) {
-                sum += window(k) * onset_envelope(j);
-            }
+            sum += window(k) * onset_envelope(j);
         }
         localscore(i) = sum;
     }
@@ -320,19 +331,21 @@ std::pair<std::vector<int>, ArrayXr> beat_track_dp(
     Real score_thresh = 0.01 * localscore.maxCoeff();
     bool first_beat = true;
 
+    backlink[0] = -1;
     cumscore(0) = localscore(0);
 
-    int fpb = static_cast<int>(std::round(frames_per_beat));
+    int fpb = round_to_nearest_even(frames_per_beat);
+    int first_lag = round_to_nearest_even(static_cast<Real>(fpb) / 2.0);
 
-    for (Eigen::Index i = 1; i < N; ++i) {
+    for (Eigen::Index i = 0; i < N; ++i) {
         Real best_score = -std::numeric_limits<Real>::infinity();
         int beat_location = -1;
 
         // Search over possible predecessors
-        Eigen::Index search_start = std::max(Eigen::Index(0), i - 2 * fpb);
-        Eigen::Index search_end = std::max(Eigen::Index(0), i - fpb / 2);
-
-        for (Eigen::Index loc = search_start; loc < search_end; ++loc) {
+        for (Eigen::Index loc = i - first_lag; loc >= i - 2 * fpb; --loc) {
+            if (loc < 0) {
+                break;
+            }
             Real penalty = std::log(static_cast<Real>(i - loc)) - std::log(frames_per_beat);
             Real score = cumscore(loc) - tightness * penalty * penalty;
             if (score > best_score) {
@@ -358,25 +371,52 @@ std::pair<std::vector<int>, ArrayXr> beat_track_dp(
     return {backlink, cumscore};
 }
 
+Real median(std::vector<Real> values) {
+    if (values.empty()) {
+        return 0.0;
+    }
+
+    std::sort(values.begin(), values.end());
+    size_t mid = values.size() / 2;
+    if (values.size() % 2 == 1) {
+        return values[mid];
+    }
+
+    return 0.5 * (values[mid - 1] + values[mid]);
+}
+
+Eigen::Index last_beat(const ArrayXr& cumscore) {
+    Eigen::Index N = cumscore.size();
+    auto localmax = util::localmax(cumscore);
+
+    std::vector<Real> local_scores;
+    local_scores.reserve(static_cast<size_t>(N));
+    for (Eigen::Index i = 0; i < N; ++i) {
+        if (localmax(i)) {
+            local_scores.push_back(cumscore(i));
+        }
+    }
+
+    Real threshold = 0.5 * median(local_scores);
+
+    Eigen::Index tail = N - 1;
+    for (Eigen::Index i = N - 1; i >= 0; --i) {
+        if (localmax(i) && cumscore(i) >= threshold) {
+            tail = i;
+            break;
+        }
+    }
+
+    return tail;
+}
+
 // Backtrack from the best ending point
 std::vector<bool> dp_backtrack(const std::vector<int>& backlink, const ArrayXr& cumscore) {
     Eigen::Index N = cumscore.size();
     std::vector<bool> beats(N, false);
 
-    // Find the last beat (max cumscore in the last portion)
-    Eigen::Index search_start = std::max(Eigen::Index(0), N - N / 4);
-    Eigen::Index tail = search_start;
-    Real max_score = cumscore(search_start);
-
-    for (Eigen::Index i = search_start + 1; i < N; ++i) {
-        if (cumscore(i) > max_score) {
-            max_score = cumscore(i);
-            tail = i;
-        }
-    }
-
     // Backtrack
-    Eigen::Index idx = tail;
+    Eigen::Index idx = last_beat(cumscore);
     while (idx >= 0) {
         beats[idx] = true;
         idx = backlink[idx];
@@ -393,7 +433,7 @@ std::vector<bool> trim_beats(const ArrayXr& localscore, const std::vector<bool>&
         return trimmed;
     }
 
-    // Compute threshold based on beat onsets
+    // Compute the smoothed beat-onset envelope threshold.
     std::vector<Real> beat_scores;
     for (size_t i = 0; i < beats.size(); ++i) {
         if (beats[i]) {
@@ -405,34 +445,43 @@ std::vector<bool> trim_beats(const ArrayXr& localscore, const std::vector<bool>&
         return trimmed;
     }
 
-    // RMS of beat scores
-    Real rms = 0;
-    for (Real s : beat_scores) {
-        rms += s * s;
-    }
-    rms = std::sqrt(rms / beat_scores.size());
-    Real threshold = 0.5 * rms;
-
-    // Trim leading weak beats
-    for (size_t i = 0; i < trimmed.size(); ++i) {
-        if (trimmed[i]) {
-            if (localscore(i) <= threshold) {
-                trimmed[i] = false;
-            } else {
-                break;
-            }
+    std::vector<Real> window = {0.0, 0.5, 1.0, 0.5, 0.0};
+    std::vector<Real> smooth_boe(beat_scores.size() + window.size() - 1, 0.0);
+    for (size_t i = 0; i < beat_scores.size(); ++i) {
+        for (size_t j = 0; j < window.size(); ++j) {
+            smooth_boe[i + j] += beat_scores[i] * window[j];
         }
     }
 
-    // Trim trailing weak beats
-    for (int i = static_cast<int>(trimmed.size()) - 1; i >= 0; --i) {
-        if (trimmed[i]) {
-            if (localscore(i) <= threshold) {
-                trimmed[i] = false;
-            } else {
-                break;
-            }
-        }
+    size_t start = window.size() / 2;
+    size_t stop = std::min(
+        smooth_boe.size(),
+        static_cast<size_t>(localscore.size()) + window.size() / 2);
+
+    Real mean_square = 0.0;
+    size_t smooth_count = 0;
+    for (size_t i = start; i < stop; ++i) {
+        mean_square += smooth_boe[i] * smooth_boe[i];
+        ++smooth_count;
+    }
+
+    Real threshold = 0.0;
+    if (trim && smooth_count > 0) {
+        threshold = 0.5 * std::sqrt(mean_square / static_cast<Real>(smooth_count));
+    }
+
+    // Match librosa.beat.__trim_beats: the threshold is computed from selected
+    // beat scores, but edge suppression scans frame-local scores.
+    Eigen::Index n = 0;
+    while (n < localscore.size() && localscore(n) <= threshold) {
+        trimmed[static_cast<size_t>(n)] = false;
+        ++n;
+    }
+
+    n = localscore.size() - 1;
+    while (n >= 0 && localscore(n) <= threshold) {
+        trimmed[static_cast<size_t>(n)] = false;
+        --n;
     }
 
     return trimmed;
@@ -469,7 +518,7 @@ std::pair<Real, std::vector<Eigen::Index>> beat_track(
 
     // Convert BPM to frames per beat
     Real frame_rate = sr / hop_length;
-    Real frames_per_beat = std::round(frame_rate * 60.0 / bpm_val);
+    Real frames_per_beat = std::nearbyint(frame_rate * 60.0 / bpm_val);
 
     // Normalize onsets
     ArrayXr normalized = normalize_onsets(onset_envelope);
@@ -519,7 +568,8 @@ std::pair<Real, std::vector<Eigen::Index>> beat_track_audio(
     BeatUnits units) {
 
     // Compute onset envelope
-    ArrayXr envelope = onset::onset_strength(y, sr, 2048, hop_length);
+    ArrayXr envelope = onset::onset_strength(y, sr, 2048, hop_length, 1, 1,
+                                             false, true, AggregateFunc::Median);
 
     return beat_track(envelope, sr, hop_length, start_bpm, tightness, trim, bpm_opt, units);
 }
