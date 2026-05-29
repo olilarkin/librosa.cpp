@@ -9,6 +9,7 @@
 #endif
 #include <cmath>
 #include <filesystem>
+#include <limits>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -29,6 +30,71 @@ ArrayXr random_array(Eigen::Index size) {
         result(i) = dist(rng);
     }
     return result;
+}
+
+Real reference_sinc(Real x) {
+    if (std::abs(x) < 1e-12) {
+        return 1.0;
+    }
+    Real pix = constants::PI * x;
+    return std::sin(pix) / pix;
+}
+
+Real reference_modified_bessel_i0(Real x) {
+    Real y = (x * x) * 0.25;
+    Real term = 1.0;
+    Real sum = 1.0;
+
+    for (int k = 1; k < 80; ++k) {
+        term *= y / static_cast<Real>(k * k);
+        sum += term;
+        if (term <= sum * std::numeric_limits<Real>::epsilon()) {
+            break;
+        }
+    }
+
+    return sum;
+}
+
+ArrayXr reference_kaiser_hq_resample_direct(const ArrayXr& y,
+                                            Real orig_sr,
+                                            Real target_sr) {
+    Real ratio = target_sr / orig_sr;
+    Eigen::Index n_samples = static_cast<Eigen::Index>(std::ceil(y.size() * ratio));
+    ArrayXr y_hat(n_samples);
+
+    Real cutoff = std::min<Real>(1.0, ratio) * 0.95;
+    cutoff = std::min<Real>(1.0, std::max<Real>(cutoff, 1e-8));
+
+    Eigen::Index radius = static_cast<Eigen::Index>(std::ceil(64.0 / cutoff));
+    radius = std::max<Eigen::Index>(radius, 1);
+
+    Real beta = 14.0;
+    Real i0_beta = reference_modified_bessel_i0(beta);
+
+    for (Eigen::Index out_idx = 0; out_idx < n_samples; ++out_idx) {
+        Real input_pos = static_cast<Real>(out_idx) / ratio;
+        Eigen::Index center = static_cast<Eigen::Index>(std::floor(input_pos));
+        Eigen::Index start = std::max<Eigen::Index>(0, center - radius);
+        Eigen::Index stop = std::min<Eigen::Index>(y.size() - 1, center + radius);
+
+        Real sample = 0.0;
+        for (Eigen::Index in_idx = start; in_idx <= stop; ++in_idx) {
+            Real distance = input_pos - static_cast<Real>(in_idx);
+            Real x = distance / static_cast<Real>(radius);
+            Real window = 0.0;
+            if (std::abs(x) <= 1.0) {
+                Real arg = beta * std::sqrt(std::max<Real>(0.0, 1.0 - x * x));
+                window = reference_modified_bessel_i0(arg) / i0_beta;
+            }
+            Real weight = cutoff * reference_sinc(cutoff * distance) * window;
+            sample += y(in_idx) * weight;
+        }
+
+        y_hat(out_idx) = sample;
+    }
+
+    return y_hat;
 }
 
 class TempAudioFile {
@@ -256,6 +322,25 @@ TEST(ResampleTest, KaiserHqPreservesToneAmplitude) {
 
     EXPECT_EQ(y_resampled.size(), static_cast<Eigen::Index>(target_sr));
     EXPECT_GT(y_resampled.abs().maxCoeff(), 0.8);
+}
+
+TEST(ResampleTest, KaiserHqRationalRateMatchesDirectKernel) {
+    Real orig_sr = 48000;
+    Real target_sr = 22050;
+    Eigen::Index n = 257;
+
+    ArrayXr y(n);
+    for (Eigen::Index i = 0; i < n; ++i) {
+        Real x = static_cast<Real>(i);
+        y(i) = std::sin(0.17 * x) + 0.25 * std::cos(0.031 * x);
+    }
+
+    ArrayXr expected = reference_kaiser_hq_resample_direct(y, orig_sr, target_sr);
+    ArrayXr actual = resample(y, orig_sr, target_sr, "kaiser_hq", true, false);
+
+    ASSERT_EQ(actual.size(), expected.size());
+    Real max_error = (actual - expected).abs().maxCoeff();
+    EXPECT_LT(max_error, 1e-12);
 }
 
 TEST(ResampleTest, SoxrIsExplicitOptIn) {
