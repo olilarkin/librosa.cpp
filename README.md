@@ -51,7 +51,8 @@ Bundled (no action needed):
 
 - Eigen (git submodule at `modules/eigen`)
 - `fnnls`, `incbeta` (vendored in `vendor/`)
-- GoogleTest and CLI11 fetched on demand via CMake `FetchContent`
+- GoogleTest, Google Benchmark, and CLI11 fetched on demand via CMake
+  `FetchContent`
 
 On Ubuntu:
 
@@ -124,6 +125,28 @@ ctest --test-dir build --output-on-failure
 
 The default unit tests are self-contained — they synthesise their own signals
 and do not require any external data.
+
+## Run performance benchmarks
+
+Google Benchmark targets are optional and off by default:
+
+```bash
+cmake -S . -B build-perf \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLIBROSA_BUILD_TESTS=OFF \
+    -DLIBROSA_BUILD_BENCHMARKS=ON
+cmake --build build-perf --target librosa_benchmarks
+./build-perf/librosa_benchmarks
+```
+
+Real-file beat/onset benchmarks are disabled unless `LIBROSA_BENCH_AUDIO` is
+set. This keeps local paths out of the build while still allowing benchmarks on
+long production tracks:
+
+```bash
+LIBROSA_BENCH_AUDIO="/path/to/file.wav" \
+    ./build-perf/librosa_benchmarks --benchmark_filter=RealAudio
+```
 
 ## Swift Package
 
