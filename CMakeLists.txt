@@ -14,6 +14,7 @@ endif()
 # Options
 option(LIBROSA_BUILD_TESTS "Build tests" ON)
 option(LIBROSA_BUILD_EXAMPLES "Build examples" OFF)
+option(LIBROSA_BUILD_BENCHMARKS "Build Google Benchmark performance benchmarks" OFF)
 option(LIBROSA_BUILD_CROSSVAL_TESTS "Build cross-validation tests against Python librosa" OFF)
 option(LIBROSA_BUILD_CLI "Build the librosa CLI tool" OFF)
 option(LIBROSA_BUILD_WASM "Build the Emscripten WASM/npm binding" OFF)
@@ -346,6 +347,36 @@ if(LIBROSA_BUILD_TESTS)
         gtest_discover_tests(crossval_tests
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
+    endif()
+endif()
+
+# Benchmarks
+if(LIBROSA_BUILD_BENCHMARKS)
+    include(FetchContent)
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark tests" FORCE)
+    set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "Disable benchmark gtest tests" FORCE)
+    FetchContent_Declare(
+        googlebenchmark
+        GIT_REPOSITORY https://github.com/google/benchmark.git
+        GIT_TAG v1.8.5
+    )
+    FetchContent_MakeAvailable(googlebenchmark)
+
+    add_executable(librosa_benchmarks
+        benchmarks/algorithm_benchmark.cpp
+        benchmarks/beat_benchmark.cpp
+        benchmarks/core_benchmark.cpp
+        benchmarks/feature_benchmark.cpp
+        benchmarks/onset_beat_benchmark.cpp
+        benchmarks/utility_benchmark.cpp
+    )
+    target_link_libraries(librosa_benchmarks
+        PRIVATE
+            librosa::librosa
+            benchmark::benchmark_main
+    )
+    if(LIBROSA_USE_AUDIOTOOLBOX)
+        target_compile_definitions(librosa_benchmarks PRIVATE LIBROSA_HAS_AUDIOTOOLBOX)
     endif()
 endif()
 
