@@ -5,3 +5,4 @@
 # Pin to the upstream version librosa.cpp is ported from.
 librosa==0.11.0
 numpy
+soxr
