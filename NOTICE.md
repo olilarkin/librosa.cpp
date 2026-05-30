@@ -37,13 +37,15 @@ These are *not* bundled — they're expected to come from the user's system
 | [FFTW3](https://www.fftw.org/) | when `LIBROSA_FFT_BACKEND=fftw` (default on Linux/Windows) | GPL-2.0-or-later | If distributing binaries, consider using the `accelerate` or `pffft` backend, or obtain a non-GPL FFTW commercial license. |
 | Apple Accelerate framework | when `LIBROSA_FFT_BACKEND=accelerate` (default on Apple) | Apple SDK terms | System framework, no extra install. |
 | Apple AudioToolbox framework | when `LIBROSA_USE_AUDIOTOOLBOX=ON` or when building the Swift package | Apple SDK terms | System audio file I/O framework, no extra install. |
+| [libsoxr](https://sourceforge.net/projects/soxr/) | when `LIBROSA_USE_SOXR=ON` | LGPL-2.1-or-later | Optional SOXR resampler for Python-librosa parity checks. Off by default. |
 
-### LGPL notes (libsndfile)
+### LGPL notes (libsndfile, libsoxr)
 
-libsndfile is LGPL-2.1. Apple SwiftPM builds do not link it. For non-Apple
-CMake builds that do link it, librosa.cpp itself remains ISC, but a binary that
-links against an LGPL library inherits LGPL obligations for the combined work.
-In practice this means:
+libsndfile is LGPL-2.1 and libsoxr is LGPL-2.1-or-later. Apple SwiftPM builds
+do not link either one by default. For CMake builds that do link an LGPL
+library, librosa.cpp itself remains ISC, but a binary that links against an
+LGPL library inherits LGPL obligations for the combined work. In practice this
+means:
 
 - Dynamic linking (the default on all platforms when using system packages)
   satisfies the LGPL naturally — end users can swap the `.so` / `.dylib`.

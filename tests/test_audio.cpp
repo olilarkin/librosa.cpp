@@ -258,6 +258,22 @@ TEST(ResampleTest, KaiserHqPreservesToneAmplitude) {
     EXPECT_GT(y_resampled.abs().maxCoeff(), 0.8);
 }
 
+TEST(ResampleTest, SoxrIsExplicitOptIn) {
+    Real orig_sr = 22050;
+    Real target_sr = 8000;
+    ArrayXr y = random_array(2048);
+
+#ifdef LIBROSA_HAS_SOXR
+    ArrayXr y_resampled = resample(y, orig_sr, target_sr, "soxr_hq", true, false);
+    Eigen::Index expected_length = static_cast<Eigen::Index>(
+        std::ceil(static_cast<Real>(y.size()) * target_sr / orig_sr));
+    EXPECT_EQ(y_resampled.size(), expected_length);
+    EXPECT_GT(y_resampled.abs().maxCoeff(), 0.0);
+#else
+    EXPECT_THROW(resample(y, orig_sr, target_sr, "soxr_hq", true, false), ParameterError);
+#endif
+}
+
 TEST(ResampleTest, InvalidSampleRatesThrow) {
     ArrayXr y = ArrayXr::Ones(32);
 

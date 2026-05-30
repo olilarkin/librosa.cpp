@@ -43,6 +43,9 @@ Build-time:
 - An internal Kaiser-windowed sinc resampler provides the `kaiser_*` modes used
   by the CQT/default resample path, including `kaiser_hq`. No libsoxr
   install or LGPL resampler link is required.
+- Optional SOXR resampling modes (`soxr_vhq`, `soxr_hq`, `soxr_mq`,
+  `soxr_lq`, `soxr_qq`) can be enabled with `-DLIBROSA_USE_SOXR=ON` for
+  Python-librosa parity checks. This is off by default because libsoxr is LGPL.
 
 Bundled (no action needed):
 
@@ -62,6 +65,14 @@ Accelerate backend):
 
 ```bash
 brew install cmake ninja
+```
+
+To enable optional SOXR resampling modes in CMake builds, install libsoxr and
+configure with `-DLIBROSA_USE_SOXR=ON`:
+
+```bash
+brew install libsoxr
+cmake -S . -B build-soxr -DLIBROSA_USE_SOXR=ON
 ```
 
 ## Build

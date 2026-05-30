@@ -15,6 +15,7 @@
 
 // Include all librosa headers
 #include <librosa/types.hpp>
+#include <librosa/core/audio.hpp>
 #include <librosa/core/convert.hpp>
 #include <librosa/core/spectrum.hpp>
 #include <librosa/core/harmonic.hpp>
@@ -488,6 +489,35 @@ TEST_F(CrossValidationTest, ChromaFilterbank) {
     ASSERT_EQ(chroma_fb.cols(), expected.cols());
 
     expectArrayNear(chroma_fb, expected, LOOSE_TOLERANCE, "chroma filterbank");
+}
+
+// ============================================================================
+// Audio Resampling Tests
+// ============================================================================
+
+TEST_F(CrossValidationTest, ResampleSoxrModes) {
+    if (dataDir.empty()) GTEST_SKIP() << "Reference data not found";
+
+#ifndef LIBROSA_HAS_SOXR
+    GTEST_SKIP() << "libsoxr support not enabled";
+#else
+    json_util::ArrayData signal_ref;
+    if (!loadArray("resample_test_signal", signal_ref)) GTEST_SKIP();
+
+    ArrayXr y = signal_ref.toArrayXr();
+    const std::vector<std::string> modes = {
+        "soxr_vhq", "soxr_hq", "soxr_mq", "soxr_lq", "soxr_qq"
+    };
+
+    for (const auto& mode : modes) {
+        json_util::ArrayData expected_ref;
+        ASSERT_TRUE(loadArray("resample_" + mode, expected_ref));
+
+        ArrayXr actual = resample(y, 22050, 8000, mode, true, false);
+        ArrayXr expected = expected_ref.toArrayXr();
+        expectArrayNear(actual, expected, 1e-6, "resample " + mode);
+    }
+#endif
 }
 
 // ============================================================================
