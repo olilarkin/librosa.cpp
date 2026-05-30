@@ -175,6 +175,22 @@ TEST(BeatTrackTest, WithFixedTempo) {
     EXPECT_GT(beats.size(), 0);
 }
 
+TEST(BeatTrackTest, IncludesFirstFrameConvolutionTap) {
+    int n_frames = 50;
+    ArrayXr onset_envelope = ArrayXr::Zero(n_frames);
+
+    for (int i = 0; i < n_frames; i += 8) {
+        onset_envelope(i) = 1.0;
+    }
+
+    auto [bpm, beats] = beat_track(onset_envelope, 24000, 500,
+                                   120.0, 100.0, true, 120.0);
+
+    EXPECT_EQ(bpm, 120.0);
+    std::vector<Eigen::Index> expected = {0, 24, 48};
+    EXPECT_EQ(beats, expected);
+}
+
 TEST(BeatTrackTest, EmptySignal) {
     ArrayXr onset_envelope = ArrayXr::Zero(100);
 

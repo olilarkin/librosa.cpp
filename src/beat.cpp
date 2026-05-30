@@ -305,7 +305,7 @@ ArrayXr beat_local_score(const ArrayXr& onset_envelope, Real frames_per_beat) {
         Eigen::Index k_start = std::max<Eigen::Index>(
             0, i + half_window - N + 1);
         Eigen::Index k_stop = std::min<Eigen::Index>(
-            i + half_window, window_size);
+            i + half_window + 1, window_size);
 
         for (Eigen::Index k = k_start; k < k_stop; ++k) {
             Eigen::Index j = i + window_size / 2 - k;
@@ -470,6 +470,8 @@ std::vector<bool> trim_beats(const ArrayXr& localscore, const std::vector<bool>&
         threshold = 0.5 * std::sqrt(mean_square / static_cast<Real>(smooth_count));
     }
 
+    // Match librosa.beat.__trim_beats: the threshold is computed from selected
+    // beat scores, but edge suppression scans frame-local scores.
     Eigen::Index n = 0;
     while (n < localscore.size() && localscore(n) <= threshold) {
         trimmed[static_cast<size_t>(n)] = false;
