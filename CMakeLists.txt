@@ -18,6 +18,7 @@ option(LIBROSA_BUILD_CROSSVAL_TESTS "Build cross-validation tests against Python
 option(LIBROSA_BUILD_CLI "Build the librosa CLI tool" OFF)
 option(LIBROSA_BUILD_WASM "Build the Emscripten WASM/npm binding" OFF)
 option(LIBROSA_BUILD_SWIFT_C_WRAPPER "Build the Swift-friendly C ABI wrapper" OFF)
+option(LIBROSA_USE_SOXR "Use libsoxr for explicit SOXR resampling modes" OFF)
 if(APPLE)
     option(LIBROSA_USE_AUDIOTOOLBOX "Use Apple AudioToolbox for audio file I/O" ON)
 else()
@@ -31,6 +32,10 @@ set_property(CACHE LIBROSA_FFT_BACKEND PROPERTY
 
 if(LIBROSA_BUILD_WASM AND NOT EMSCRIPTEN)
     message(FATAL_ERROR "LIBROSA_BUILD_WASM requires configuring with emcmake/Emscripten")
+endif()
+
+if(LIBROSA_BUILD_WASM AND LIBROSA_USE_SOXR)
+    message(FATAL_ERROR "LIBROSA_USE_SOXR is not supported for Emscripten/WASM builds")
 endif()
 
 if(LIBROSA_USE_AUDIOTOOLBOX AND NOT APPLE)
@@ -52,6 +57,12 @@ else()
     if(NOT SNDFILE_FOUND)
         message(STATUS "libsndfile not found; audio I/O (load/write) will throw at runtime")
     endif()
+endif()
+
+if(LIBROSA_USE_SOXR)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SOXR REQUIRED soxr)
+    message(STATUS "librosa SOXR resampler: enabled (${SOXR_VERSION})")
 endif()
 
 # Resolve FFT backend selection.
@@ -167,6 +178,13 @@ if(SNDFILE_FOUND)
 elseif(LIBROSA_USE_AUDIOTOOLBOX)
     target_compile_definitions(librosa PRIVATE LIBROSA_HAS_AUDIOTOOLBOX)
     target_link_libraries(librosa PUBLIC "-framework AudioToolbox" "-framework CoreFoundation")
+endif()
+
+if(LIBROSA_USE_SOXR)
+    target_compile_definitions(librosa PUBLIC LIBROSA_HAS_SOXR)
+    target_include_directories(librosa PRIVATE ${SOXR_INCLUDE_DIRS})
+    target_link_directories(librosa PUBLIC ${SOXR_LIBRARY_DIRS})
+    target_link_libraries(librosa PUBLIC ${SOXR_LIBRARIES})
 endif()
 
 if(_librosa_fft_backend STREQUAL "fftw")

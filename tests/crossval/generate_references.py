@@ -96,6 +96,32 @@ def generate_spectrum_references():
                {"n_fft": n_fft, "hop_length": hop_length})
 
 
+def generate_resample_references():
+    """Generate references for SOXR resampling."""
+    print("\n=== Resample Module ===")
+
+    sr = 22050
+    target_sr = 8000
+    duration = 0.25
+    t = np.arange(int(sr * duration), dtype=np.float64) / sr
+    y = (
+        0.5 * np.sin(2 * np.pi * 220.0 * t)
+        + 0.25 * np.sin(2 * np.pi * 997.0 * t)
+        + 0.1 * np.sin(2 * np.pi * 3200.0 * t)
+    )
+    y[::997] += 0.05
+    y = y.astype(np.float64)
+
+    save_array("resample_test_signal", y, {"sr": sr, "target_sr": target_sr})
+
+    for res_type in ["soxr_vhq", "soxr_hq", "soxr_mq", "soxr_lq", "soxr_qq"]:
+        y_hat = librosa.resample(
+            y, orig_sr=sr, target_sr=target_sr, res_type=res_type
+        )
+        save_array(f"resample_{res_type}", y_hat,
+                   {"sr": sr, "target_sr": target_sr, "res_type": res_type})
+
+
 def generate_filters_references():
     """Generate references for filters module."""
     print("\n=== Filters Module ===")
@@ -717,6 +743,7 @@ def main():
 
     generate_convert_references()
     generate_spectrum_references()
+    generate_resample_references()
     generate_filters_references()
     generate_feature_references()
     generate_onset_references()
