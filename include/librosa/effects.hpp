@@ -39,7 +39,8 @@ ArrayXr time_stretch(
 /// @param sr Sample rate
 /// @param n_steps Number of steps to shift (can be fractional)
 /// @param bins_per_octave Number of steps per octave
-/// @param res_type Resampling method ("kaiser_*", "fft", or "linear")
+/// @param res_type Resampling method ("kaiser_*", "fft", "linear", or
+///        "soxr_*" when built with LIBROSA_USE_SOXR)
 /// @param n_fft FFT window size
 /// @param hop_length Samples between frames
 /// @return Pitch-shifted audio

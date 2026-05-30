@@ -68,11 +68,13 @@ Different modules may require different tolerance levels due to:
 
 Current tolerances:
 - `DEFAULT_TOLERANCE = 1e-5`: For exact mathematical operations
+- `1e-6`: For optional SOXR resampling parity when libsoxr is enabled
 - `LOOSE_TOLERANCE = 1e-3`: For filter banks, spectral features
 
 ## Modules Covered
 
 - [x] Convert (hz_to_mel, mel_to_hz, hz_to_midi, amplitude_to_db, power_to_db)
+- [x] Audio (SOXR resampling modes when built with `LIBROSA_USE_SOXR=ON`)
 - [x] Filters (mel filterbank, chroma filterbank)
 - [x] Spectrum (STFT magnitude/phase)
 - [x] Features (melspectrogram, MFCC, chroma, spectral features, RMS, ZCR)

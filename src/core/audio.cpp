@@ -13,6 +13,9 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+#ifdef LIBROSA_HAS_SOXR
+#include <soxr.h>
+#endif
 #include "../internal/fft.hpp"
 
 namespace librosa {
@@ -285,6 +288,10 @@ namespace {
                res_type == "kaiser_fast";
     }
 
+    bool is_soxr_resampler(const std::string& res_type) {
+        return res_type.rfind("soxr", 0) == 0;
+    }
+
     SincResamplerSpec kaiser_resampler_spec(const std::string& res_type) {
         if (res_type == "kaiser_vhq") {
             return {96, 16.0, 0.975};
@@ -373,6 +380,57 @@ namespace {
 
         return y_hat;
     }
+
+#ifdef LIBROSA_HAS_SOXR
+    unsigned long soxr_quality_recipe(const std::string& res_type) {
+        if (res_type == "soxr_vhq") return SOXR_VHQ;
+        if (res_type == "soxr_hq") return SOXR_HQ;
+        if (res_type == "soxr_mq") return SOXR_MQ;
+        if (res_type == "soxr_lq") return SOXR_LQ;
+        if (res_type == "soxr_qq") return SOXR_QQ;
+        throw ParameterError("Unknown SOXR resampling type: " + res_type);
+    }
+
+    ArrayXr soxr_resample(const ArrayXr& y, Real orig_sr, Real target_sr,
+                          Eigen::Index n_samples, const std::string& res_type) {
+        ArrayXr y_hat(n_samples);
+        if (n_samples == 0) {
+            return y_hat;
+        }
+
+        soxr_io_spec_t io_spec = soxr_io_spec(SOXR_FLOAT64_I, SOXR_FLOAT64_I);
+        soxr_quality_spec_t quality_spec =
+            soxr_quality_spec(soxr_quality_recipe(res_type), 0);
+        soxr_runtime_spec_t runtime_spec = soxr_runtime_spec(1);
+
+        size_t idone = 0;
+        size_t odone = 0;
+        soxr_error_t err = soxr_oneshot(
+            static_cast<double>(orig_sr),
+            static_cast<double>(target_sr),
+            1,
+            y.data(),
+            static_cast<size_t>(y.size()),
+            &idone,
+            y_hat.data(),
+            static_cast<size_t>(n_samples),
+            &odone,
+            &io_spec,
+            &quality_spec,
+            &runtime_spec);
+
+        if (err) {
+            throw ParameterError(std::string("SOXR resampling failed: ") +
+                                 soxr_strerror(err));
+        }
+
+        if (odone != static_cast<size_t>(y_hat.size())) {
+            y_hat.conservativeResize(static_cast<Eigen::Index>(odone));
+        }
+
+        return y_hat;
+    }
+#endif
 }
 
 // ============================================================================
@@ -603,6 +661,13 @@ ArrayXr resample(const ArrayXr& y, Real orig_sr, Real target_sr,
 
     if (is_kaiser_resampler(res_type)) {
         y_hat = kaiser_sinc_resample(y, ratio, n_samples, kaiser_resampler_spec(res_type));
+    } else if (is_soxr_resampler(res_type)) {
+#ifdef LIBROSA_HAS_SOXR
+        y_hat = soxr_resample(y, orig_sr, target_sr, n_samples, res_type);
+#else
+        throw ParameterError(
+            "SOXR resampling requires configuring with -DLIBROSA_USE_SOXR=ON");
+#endif
     } else if (res_type == "fft" || res_type == "scipy") {
         int n_fft = y.size();
         int n_out = n_samples;
