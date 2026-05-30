@@ -1,6 +1,6 @@
 {
   "name": "@olilarkin/librosa-wasm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "librosa.cpp compiled to WebAssembly with WASM SIMD and a TypeScript API.",
   "type": "module",
   "main": "./dist/src/index.js",
