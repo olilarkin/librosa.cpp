@@ -10,6 +10,16 @@ const y = librosa.tone(440, { sr: 22050, duration: 1.0 });
 const mfcc = librosa.mfcc(y, { sr: 22050, nMfcc: 13 });
 ```
 
+The package ships both an ES module and a CommonJS build, so it works directly
+from `import` (ESM, bundlers, browsers) and from `require` (Electron main, plain
+Node, Ableton Extension Host) with no extra conversion:
+
+```js
+const { createLibrosa } = require("@olilarkin/librosa-wasm");
+
+const librosa = await createLibrosa();
+```
+
 Matrices are row-major objects:
 
 ```ts
