@@ -1,13 +1,21 @@
 {
   "name": "@olilarkin/librosa-wasm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "librosa.cpp compiled to WebAssembly with WASM SIMD and a TypeScript API.",
   "type": "module",
-  "main": "./dist/src/index.js",
+  "main": "./dist/src/index.cjs",
+  "module": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
+      "import": {
+        "types": "./dist/src/index.d.ts",
+        "default": "./dist/src/index.js"
+      },
+      "require": {
+        "types": "./dist/src/index.d.cts",
+        "default": "./dist/src/index.cjs"
+      },
       "default": "./dist/src/index.js"
     }
   },
@@ -20,8 +28,10 @@
   "scripts": {
     "build:wasm": "emcmake cmake -S ../.. -B ../../build-wasm -G Ninja -DLIBROSA_BUILD_TESTS=OFF -DLIBROSA_BUILD_CROSSVAL_TESTS=OFF -DLIBROSA_BUILD_CLI=OFF -DLIBROSA_BUILD_WASM=ON -DLIBROSA_FFT_BACKEND=pffft && cmake --build ../../build-wasm --target librosa_wasm",
     "build:ts": "tsc -p tsconfig.json",
-    "build": "npm run build:wasm && npm run build:ts",
-    "test": "npm run build:ts && node --test dist/test/*.test.js",
+    "build:cjs": "node scripts/make-cjs.mjs",
+    "build": "npm run build:wasm && npm run build:ts && npm run build:cjs",
+    "test": "npm run build:ts && npm run build:cjs && node --test dist/test/*.test.js && npm run test:cjs",
+    "test:cjs": "node scripts/smoke.cjs",
     "prepublishOnly": "npm run build && npm test"
   },
   "publishConfig": {
