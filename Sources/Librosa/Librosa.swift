@@ -538,6 +538,48 @@ public enum Librosa {
         }
     }
 
+    /// Harmonic component of a signal (time-domain): STFT → HPSS → iSTFT.
+    public static func harmonic(_ y: [Double],
+                                kernelSize: Int = 31,
+                                power: Double = 2,
+                                margin: Double = 1,
+                                nFFT: Int = 2048,
+                                hopLength: Int = 512) throws -> [Double] {
+        try y.withUnsafeBufferPointer { buffer in
+            try vector { out in
+                librosa_effects_harmonic(buffer.baseAddress,
+                                         Int64(buffer.count),
+                                         CInt(kernelSize),
+                                         power,
+                                         margin,
+                                         CInt(nFFT),
+                                         CInt(hopLength),
+                                         out)
+            }
+        }
+    }
+
+    /// Percussive component of a signal (time-domain): STFT → HPSS → iSTFT.
+    public static func percussive(_ y: [Double],
+                                  kernelSize: Int = 31,
+                                  power: Double = 2,
+                                  margin: Double = 1,
+                                  nFFT: Int = 2048,
+                                  hopLength: Int = 512) throws -> [Double] {
+        try y.withUnsafeBufferPointer { buffer in
+            try vector { out in
+                librosa_effects_percussive(buffer.baseAddress,
+                                           Int64(buffer.count),
+                                           CInt(kernelSize),
+                                           power,
+                                           margin,
+                                           CInt(nFFT),
+                                           CInt(hopLength),
+                                           out)
+            }
+        }
+    }
+
     public static func amplitudeToDB(_ spectrogram: LibrosaMatrix,
                                      ref: Double = 1.0,
                                      amin: Double = 1e-5,

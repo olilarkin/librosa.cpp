@@ -924,6 +924,62 @@ int librosa_stft_magnitude(const double *y,
     });
 }
 
+int librosa_effects_harmonic(const double *y,
+                             int64_t count,
+                             int kernel_size,
+                             double power,
+                             double margin,
+                             int n_fft,
+                             int hop_length,
+                             LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(y, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(
+            librosa::effects::harmonic(make_array(y, count),
+                                       kernel_size,
+                                       power,
+                                       false,
+                                       margin,
+                                       n_fft,
+                                       hop_length > 0 ? std::optional<int>(hop_length) : std::nullopt,
+                                       std::nullopt,
+                                       librosa::WindowType::Hann,
+                                       true,
+                                       librosa::PadMode::Constant),
+            out);
+    });
+}
+
+int librosa_effects_percussive(const double *y,
+                               int64_t count,
+                               int kernel_size,
+                               double power,
+                               double margin,
+                               int n_fft,
+                               int hop_length,
+                               LibrosaVector *out) {
+    return run([&]() {
+        if (!validate_input(y, count)) {
+            return LIBROSA_STATUS_ERROR;
+        }
+        return copy_vector(
+            librosa::effects::percussive(make_array(y, count),
+                                         kernel_size,
+                                         power,
+                                         false,
+                                         margin,
+                                         n_fft,
+                                         hop_length > 0 ? std::optional<int>(hop_length) : std::nullopt,
+                                         std::nullopt,
+                                         librosa::WindowType::Hann,
+                                         true,
+                                         librosa::PadMode::Constant),
+            out);
+    });
+}
+
 int librosa_amplitude_to_db(const double *s,
                             int64_t rows,
                             int64_t columns,
